@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, Fragment } from 'react'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { vocabService, getDailyGoal, setDailyGoal } from './vocab.service'
 import FlashCard from './FlashCard'
+import type { FlashCardHandle } from './FlashCard'
 import type { VocabWord, WordDetail, DailyStats, WeeklyStats, LearningMode } from './vocab.types'
 
 function renderMeaning(text: string) {
@@ -113,6 +114,7 @@ export default function VocabPage() {
 
   // 请求去重：30s 内不重复查询同一接口
   const lastFetch = useRef(new Map<string, number>())
+  const flashcardRef = useRef<FlashCardHandle>(null)
   function dedup(key: string, minInterval = 30000): boolean {
     const now = Date.now()
     if (now - (lastFetch.current.get(key) || 0) < minInterval) return false
@@ -161,6 +163,29 @@ export default function VocabPage() {
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [user])
+
+  // 键盘快捷键
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      // 只在闪卡模式、已就绪、未完成、无弹窗时生效
+      if (mode !== 'flashcard' || !ready || roundComplete || statList || consultWord || editingGoal) return
+      // 不在输入框中生效
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        handleResult(false)
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        handleResult(true)
+      } else if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault()
+        flashcardRef.current?.toggleFlip()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [mode, ready, roundComplete, statList, consultWord, editingGoal, words, index])
 
   async function loadWords() {
     if (!user) return
@@ -233,7 +258,7 @@ export default function VocabPage() {
   async function loadDifficultWords() {
     if (!user || difficultLoaded) return
     try {
-      const dw = await vocabService.getDifficultWords(user.id, 30)
+      const dw = await vocabService.getDifficultWords(user.id, 20)
       setDifficultWords(dw)
     } catch { /* 静默 */ }
     setDifficultLoaded(true)
@@ -242,8 +267,13 @@ export default function VocabPage() {
   async function loadWeeklyStats() {
     if (!user) return
     try {
-      const ws = await vocabService.getWeeklyStats(user.id)
-      setWeekly(ws)
+      const [ws, reset, freq, difficult20] = await Promise.all([
+        vocabService.getWeeklyStats(user.id),
+        vocabService.getWeeklyResetWords(user.id),
+        vocabService.getWeeklyFrequencyBreakdown(user.id),
+        vocabService.getDifficultWords(user.id, 20),
+      ])
+      setWeekly({ ...ws, resetCount: reset.count, resetWords: reset.words, freqBreakdown: freq, difficultTop20: difficult20 })
     } catch { /* 静默 */ }
     setWeeklyLoaded(true)
   }
@@ -519,6 +549,7 @@ export default function VocabPage() {
                   </button>
                 </div>
                 <FlashCard
+                  ref={flashcardRef}
                   key={words[index]?.id}
                   word={words[index]}
                   onKnown={() => handleResult(true)}
@@ -797,6 +828,116 @@ export default function VocabPage() {
                       </span>
                     </div>
                   </div>
+
+                  {/* 遗忘重置 */}
+                  {weekly.resetCount > 0 && (
+                    <div className="card-warm !rounded-2xl p-5 mb-3">
+                      <h3 className="font-display text-sm font-semibold mb-3" style={{ color: 'var(--color-ink)' }}>
+                        ⚠️ 本周遗忘重置
+                        <span className="font-ui text-xs font-normal ml-2" style={{ color: 'var(--color-rose-warm)' }}>
+                          {weekly.resetCount} 个已学词被标记"不认识"
+                        </span>
+                      </h3>
+                      <div className="space-y-2">
+                        {weekly.resetWords.slice(0, 5).map(w => (
+                          <div key={w.id} className="flex items-center gap-3 rounded-lg p-2.5" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
+                            <span className="font-display font-semibold text-sm min-w-[80px] shrink-0" style={{ color: 'var(--color-ink)' }}>{w.word}</span>
+                            <span className="font-body text-xs truncate flex-1" style={{ color: 'var(--color-ink-soft)' }}>{w.meaning}</span>
+                            <span className="font-ui text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0"
+                              style={{ backgroundColor: 'rgba(194, 120, 92, 0.08)', color: 'var(--color-rose-warm)' }}>
+                              忘 {w.progress?.times_unknown} 次
+                            </span>
+                          </div>
+                        ))}
+                        {weekly.resetWords.length === 0 && weekly.resetCount > 0 && (
+                          <p className="font-ui text-[10px] text-center opacity-40" style={{ color: 'var(--color-ink-muted)' }}>加载中…</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 词频分布 */}
+                  {(() => {
+                    const { high, medium, low } = weekly.freqBreakdown
+                    const total = high + medium + low
+                    if (total === 0) return null
+                    const highPct = Math.round((high / total) * 100)
+                    const mediumPct = Math.round((medium / total) * 100)
+                    const lowPct = 100 - highPct - mediumPct
+                    return (
+                      <div className="card-warm !rounded-2xl p-5 mb-3">
+                        <h3 className="font-display text-sm font-semibold mb-4" style={{ color: 'var(--color-ink)' }}>
+                          📊 词频覆盖
+                          <span className="font-ui text-xs font-normal ml-2" style={{ color: 'var(--color-ink-muted)' }}>
+                            本周 {total} 个不同词
+                          </span>
+                        </h3>
+                        <div className="space-y-3">
+                          {/* 高频 */}
+                          <div className="flex items-center gap-3">
+                            <span className="font-ui text-xs min-w-[36px]" style={{ color: 'var(--color-ink-muted)' }}>高频</span>
+                            <div className="flex-1 h-5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(232,221,208,0.4)' }}>
+                              <div className="h-full rounded-full transition-all duration-500" style={{
+                                width: `${Math.max(highPct, high > 0 ? 8 : 0)}%`,
+                                background: 'linear-gradient(90deg, var(--color-terracotta), var(--color-terracotta-light))',
+                              }} />
+                            </div>
+                            <span className="font-display text-xs font-semibold min-w-[40px] text-right" style={{ color: 'var(--color-terracotta)' }}>
+                              {high} 词 {highPct}%
+                            </span>
+                          </div>
+                          {/* 中频 */}
+                          <div className="flex items-center gap-3">
+                            <span className="font-ui text-xs min-w-[36px]" style={{ color: 'var(--color-ink-muted)' }}>中频</span>
+                            <div className="flex-1 h-5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(232,221,208,0.4)' }}>
+                              <div className="h-full rounded-full transition-all duration-500" style={{
+                                width: `${Math.max(mediumPct, medium > 0 ? 8 : 0)}%`,
+                                backgroundColor: 'var(--color-terracotta-light)',
+                              }} />
+                            </div>
+                            <span className="font-display text-xs font-semibold min-w-[40px] text-right" style={{ color: 'var(--color-ink-soft)' }}>
+                              {medium} 词 {mediumPct}%
+                            </span>
+                          </div>
+                          {/* 低频 */}
+                          <div className="flex items-center gap-3">
+                            <span className="font-ui text-xs min-w-[36px]" style={{ color: 'var(--color-ink-muted)' }}>低频</span>
+                            <div className="flex-1 h-5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(232,221,208,0.4)' }}>
+                              <div className="h-full rounded-full transition-all duration-500" style={{
+                                width: `${Math.max(lowPct, low > 0 ? 8 : 0)}%`,
+                                backgroundColor: 'var(--color-ink-muted)',
+                                opacity: 0.5,
+                              }} />
+                            </div>
+                            <span className="font-display text-xs font-semibold min-w-[40px] text-right" style={{ color: 'var(--color-ink-muted)' }}>
+                              {low} 词 {lowPct}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* 本周易错 TOP 20 */}
+                  {weekly.difficultTop20.length > 0 && (
+                    <div className="card-warm !rounded-2xl p-5 mb-3">
+                      <h3 className="font-display text-sm font-semibold mb-3" style={{ color: 'var(--color-ink)' }}>
+                        📛 易错词 TOP 20
+                      </h3>
+                      <div className="space-y-2">
+                        {weekly.difficultTop20.map(w => (
+                          <div key={w.id} className="flex items-center gap-3 rounded-lg p-2.5" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
+                            <span className="font-display font-semibold text-sm min-w-[80px] shrink-0" style={{ color: 'var(--color-ink)' }}>{w.word}</span>
+                            <span className="font-body text-xs truncate flex-1" style={{ color: 'var(--color-ink-soft)' }}>{w.meaning}</span>
+                            <span className="font-ui text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0"
+                              style={{ backgroundColor: 'rgba(194, 120, 92, 0.08)', color: 'var(--color-rose-warm)' }}>
+                              ✗{w.progress?.times_unknown}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="card-warm !rounded-2xl text-center py-14 px-8">

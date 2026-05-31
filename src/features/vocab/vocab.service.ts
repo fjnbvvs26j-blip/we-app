@@ -93,15 +93,25 @@ export const vocabService = {
     const learnedIds = (learned || []).map(r => r.word_id)
 
     // 如果有已学 ID，用 not.in 在服务器端过滤
-    let q = supabase.from('vocab_words').select('*').order('list_number', { ascending: true }).limit(limit * 3)
+    let q = supabase.from('vocab_words').select('*').order('list_number', { ascending: true }).limit(limit * 4)
     if (learnedIds.length > 0) {
-      q = q.not('id', 'in', `(${learnedIds.join(',')})`)
+      const batch = learnedIds.slice(0, 300)
+      q = q.not('id', 'in', `(${batch.join(',')})`)
     }
 
     const { data, error } = await q
     if (error) throw error
 
-    return ((data || []) as VocabWord[]).filter(w => !learnedIds.includes(w.id)).slice(0, limit)
+    const words = ((data || []) as VocabWord[]).filter(w => !learnedIds.includes(w.id))
+
+    // 高频词优先：sort 确保 high-frequency 排前面，保证 >= 50% 高频覆盖
+    words.sort((a, b) => {
+      if (a.frequency === 'high' && b.frequency !== 'high') return -1
+      if (a.frequency !== 'high' && b.frequency === 'high') return 1
+      return 0
+    })
+
+    return words.slice(0, limit)
   },
 
   async getReviewWords(userId: string, limit = 30) {
@@ -267,6 +277,88 @@ export const vocabService = {
     }
 
     return { days, totalReviewed, totalNew }
+  },
+
+  /** 本周被遗忘重置的词（已学过的词点"不认识"导致 review_count 归零） */
+  async getWeeklyResetWords(userId: string): Promise<{ count: number; words: WordDetail[] }> {
+    const weekStart = new Date()
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+    weekStart.setHours(0, 0, 0, 0)
+
+    const { data: progress } = await supabase
+      .from('vocab_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('review_count', 0)
+      .gte('last_reviewed', weekStart.toISOString())
+      .limit(500)
+
+    // 筛选：times_unknown >= 1 说明被标记过"不认识"（排除纯新词）
+    const reset = (progress || []).filter(p => {
+      const meta = (p.metadata as any) || {}
+      return (meta.times_unknown || 0) >= 1
+    })
+
+    if (reset.length === 0) return { count: 0, words: [] }
+
+    const wordIds = [...new Set(reset.map(p => p.word_id))]
+    const { data: words } = await supabase
+      .from('vocab_words')
+      .select('*')
+      .in('id', wordIds.slice(0, 20))
+
+    const wordMap = new Map((words || []).map(w => [w.id, w]))
+
+    const wordDetails = reset.slice(0, 20).map(p => {
+      const w = wordMap.get(p.word_id)
+      const meta = (p.metadata as any) || {}
+      return {
+        ...(w || {} as VocabWord),
+        progress: {
+          status: p.status,
+          review_count: p.review_count,
+          times_known: meta.times_known || 0,
+          times_unknown: meta.times_unknown || 0,
+          last_reviewed: p.last_reviewed,
+          next_review: p.next_review,
+        },
+      }
+    }) as WordDetail[]
+
+    return { count: reset.length, words: wordDetails }
+  },
+
+  /** 本周学习词的考频分布 */
+  async getWeeklyFrequencyBreakdown(userId: string): Promise<{ high: number; medium: number; low: number }> {
+    const weekStart = new Date()
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+    weekStart.setHours(0, 0, 0, 0)
+
+    const { data: progress } = await supabase
+      .from('vocab_progress')
+      .select('word_id')
+      .eq('user_id', userId)
+      .gte('last_reviewed', weekStart.toISOString())
+      .limit(2000)
+
+    if (!progress || progress.length === 0) return { high: 0, medium: 0, low: 0 }
+
+    const wordIds = [...new Set(progress.map(p => p.word_id))]
+    const { data: words } = await supabase
+      .from('vocab_words')
+      .select('id, frequency')
+      .in('id', wordIds)
+
+    let high = 0, medium = 0, low = 0
+    const freqMap = new Map((words || []).map(w => [w.id, w.frequency]))
+    for (const id of wordIds) {
+      const freq = freqMap.get(id)
+      if (freq === 'high') high++
+      else if (freq === 'medium') medium++
+      else low++
+    }
+
+    return { high, medium, low }
   },
 
   // ============ 搜索 ============

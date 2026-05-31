@@ -1,5 +1,7 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
 import type { VocabWord } from './vocab.types'
+
+export type FlashCardHandle = { toggleFlip: () => void }
 
 function RichMeaning({ text }: { text: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g)
@@ -24,12 +26,18 @@ type Props = {
   onUnknown: () => void
 }
 
-export default function FlashCard({ word, onKnown, onUnknown }: Props) {
+const FlashCard = forwardRef<FlashCardHandle, Props>(function FlashCard({ word, onKnown, onUnknown }, ref) {
   const [flipped, setFlipped] = useState(false)
   const [leaving, setLeaving] = useState<'left' | 'right' | null>(null)
   const [dragX, setDragX] = useState(0)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
   const isDragging = useRef(false)
+
+  useImperativeHandle(ref, () => ({
+    toggleFlip() {
+      if (!leaving && !isDragging.current) setFlipped(f => !f)
+    },
+  }), [leaving])
 
   function handleSwipe(direction: 'left' | 'right') {
     setLeaving(direction)
@@ -93,21 +101,32 @@ export default function FlashCard({ word, onKnown, onUnknown }: Props) {
       onTouchEnd={onTouchEnd}
     >
       {/* 提示 */}
-      <div className="flex items-center gap-3 font-ui text-xs tracking-wide" style={{ color: 'var(--color-ink-muted)' }}>
-        <span className="flex items-center gap-1">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
-          点击翻转
-        </span>
-        <span className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--color-warm-border)' }} />
-        <span className="flex items-center gap-1">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6l4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          左滑不认识
-        </span>
-        <span className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--color-warm-border)' }} />
-        <span className="flex items-center gap-1">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          右滑认识
-        </span>
+      <div className="flex flex-col items-center gap-1.5 font-ui text-xs tracking-wide" style={{ color: 'var(--color-ink-muted)' }}>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+            点击翻转
+          </span>
+          <span className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--color-warm-border)' }} />
+          <span className="flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6l4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            左滑不认识
+          </span>
+          <span className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--color-warm-border)' }} />
+          <span className="flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            右滑认识
+          </span>
+        </div>
+        {/* 键盘快捷键 */}
+        <div className="hidden md:flex items-center gap-2 opacity-50">
+          <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(232,221,208,0.5)', border: '1px solid var(--color-warm-border)' }}>←</kbd>
+          <span className="text-[10px]">不认识</span>
+          <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(232,221,208,0.5)', border: '1px solid var(--color-warm-border)' }}>→</kbd>
+          <span className="text-[10px]">认识</span>
+          <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(232,221,208,0.5)', border: '1px solid var(--color-warm-border)' }}>Space</kbd>
+          <span className="text-[10px]">翻转</span>
+        </div>
       </div>
 
       {/* 卡片 */}
@@ -214,4 +233,6 @@ export default function FlashCard({ word, onKnown, onUnknown }: Props) {
       </div>
     </div>
   )
-}
+})
+
+export default FlashCard

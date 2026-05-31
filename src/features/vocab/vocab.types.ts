@@ -48,6 +48,10 @@ export type WeeklyStats = {
   days: WeeklyDay[]
   totalReviewed: number
   totalNew: number
+  resetCount: number
+  resetWords: WordDetail[]
+  freqBreakdown: { high: number; medium: number; low: number }
+  difficultTop20: WordDetail[]
 }
 
 export type VocabQuiz = {
