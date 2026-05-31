@@ -111,8 +111,55 @@ export default function VocabPage() {
   const [consultWord, setConsultWord] = useState<WordDetail | null>(null)
   const [statSearch, setStatSearch] = useState('')
 
+  // 请求去重：30s 内不重复查询同一接口
+  const lastFetch = useRef(new Map<string, number>())
+  function dedup(key: string, minInterval = 30000): boolean {
+    const now = Date.now()
+    if (now - (lastFetch.current.get(key) || 0) < minInterval) return false
+    lastFetch.current.set(key, now)
+    return true
+  }
+
+  // 包装带去重的 stats 刷新
+  function refreshStats() {
+    if (!user) return
+    if (dedup('stats')) {
+      vocabService.getStats(user.id).then(st => {
+        setStats(prev => ({ ...prev, total: st.total, known: st.known, learning: st.learning, due: st.due }))
+      }).catch(() => {})
+    }
+  }
+  function refreshDailyStats() {
+    if (!user || !dedup('daily')) return
+    loadDailyStats()
+  }
+
   useEffect(() => {
     if (user) { loadWords(); loadDailyStats() }
+  }, [user])
+
+  // 页面可见时每 30s 自动刷新 stats
+  useEffect(() => {
+    if (!user) return
+    let timer: ReturnType<typeof setInterval>
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        refreshStats()
+        refreshDailyStats()
+        timer = setInterval(() => {
+          refreshStats()
+          refreshDailyStats()
+        }, 30000)
+      } else {
+        clearInterval(timer)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    timer = setInterval(refreshStats, 30000)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [user])
 
   async function loadWords() {
@@ -343,9 +390,9 @@ export default function VocabPage() {
                 key={t.key}
                 onClick={() => {
                   setMode(t.key)
+                  if (t.key === 'flashcard') { refreshStats(); refreshDailyStats() }
                   if (t.key === 'difficult') loadDifficultWords()
                   if (t.key === 'weekly') loadWeeklyStats()
-                  if (t.key === 'flashcard') loadDailyStats()
                 }}
                 className={`flex-1 min-w-0 py-2 rounded-[10px] font-ui text-sm font-medium transition-all duration-200 ${
                   mode === t.key ? '' : ''

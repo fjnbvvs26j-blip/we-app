@@ -83,24 +83,25 @@ export const vocabService = {
   },
 
   async getNewWords(userId: string, limit = 15) {
+    // 只取最近学过的 word_id，避免全量拉取
     const { data: learned } = await supabase
       .from('vocab_progress')
       .select('word_id')
       .eq('user_id', userId)
+      .limit(500)
 
     const learnedIds = (learned || []).map(r => r.word_id)
 
-    const fetchLimit = limit + learnedIds.length + 50
-    const { data, error } = await supabase
-      .from('vocab_words')
-      .select('*')
-      .order('list_number', { ascending: true })
-      .limit(fetchLimit)
+    // 如果有已学 ID，用 not.in 在服务器端过滤
+    let q = supabase.from('vocab_words').select('*').order('list_number', { ascending: true }).limit(limit * 3)
+    if (learnedIds.length > 0) {
+      q = q.not('id', 'in', `(${learnedIds.join(',')})`)
+    }
 
+    const { data, error } = await q
     if (error) throw error
 
-    const words = (data || []) as VocabWord[]
-    return words.filter(w => !learnedIds.includes(w.id)).slice(0, limit)
+    return ((data || []) as VocabWord[]).filter(w => !learnedIds.includes(w.id)).slice(0, limit)
   },
 
   async getReviewWords(userId: string, limit = 30) {
@@ -179,6 +180,7 @@ export const vocabService = {
       .from('vocab_progress')
       .select('status, next_review')
       .eq('user_id', userId)
+      .limit(5000)
 
     if (error) throw error
     const total = data.length
@@ -223,39 +225,48 @@ export const vocabService = {
 
   async getWeeklyStats(userId: string): Promise<WeeklyStats> {
     const dayLabels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-    const days: WeeklyDay[] = []
 
+    // 一次查询拉取近 7 天所有数据，客户端按天分组
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()
+    const { data: allProgress, error } = await supabase
+      .from('vocab_progress')
+      .select('review_count, last_reviewed')
+      .eq('user_id', userId)
+      .gte('last_reviewed', sevenDaysAgo)
+      .limit(2000)
+
+    // 按日期字符串为 key 分组
+    const dayMap = new Map<string, { reviewed: number; newWords: number }>()
+
+    if (allProgress) {
+      for (const p of allProgress) {
+        const dateStr = p.last_reviewed?.slice(0, 10)
+        if (!dateStr) continue
+        const entry = dayMap.get(dateStr) || { reviewed: 0, newWords: 0 }
+        entry.reviewed++
+        if (p.review_count === 1) entry.newWords++
+        dayMap.set(dateStr, entry)
+      }
+    }
+
+    // 构建 7 天数组
+    const days: WeeklyDay[] = []
+    let totalReviewed = 0, totalNew = 0
     for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000)
       const dateStr = d.toISOString().slice(0, 10)
-      const start = dateStr + 'T00:00:00+08:00'
-      const end = dateStr + 'T23:59:59+08:00'
-
-      const { data: dayData, error } = await supabase
-        .from('vocab_progress')
-        .select('review_count')
-        .eq('user_id', userId)
-        .gte('last_reviewed', start)
-        .lte('last_reviewed', end)
-
-      if (error || !dayData) {
-        days.push({ date: dateStr, label: dayLabels[d.getDay()], reviewed: 0, newWords: 0 })
-        continue
-      }
-
+      const entry = dayMap.get(dateStr) || { reviewed: 0, newWords: 0 }
       days.push({
         date: dateStr,
         label: i === 0 ? '今天' : dayLabels[d.getDay()],
-        reviewed: dayData.length,
-        newWords: dayData.filter(r => r.review_count === 1).length,
+        reviewed: entry.reviewed,
+        newWords: entry.newWords,
       })
+      totalReviewed += entry.reviewed
+      totalNew += entry.newWords
     }
 
-    return {
-      days,
-      totalReviewed: days.reduce((s, d) => s + d.reviewed, 0),
-      totalNew: days.reduce((s, d) => s + d.newWords, 0),
-    }
+    return { days, totalReviewed, totalNew }
   },
 
   // ============ 搜索 ============
@@ -302,6 +313,7 @@ export const vocabService = {
       .from('vocab_progress')
       .select('*')
       .eq('user_id', userId)
+      .limit(500)
 
     if (error || !progress) return []
 
