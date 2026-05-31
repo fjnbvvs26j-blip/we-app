@@ -335,40 +335,28 @@ export default function VocabPage() {
 
             <button
               onClick={() => setEditingGoal(!editingGoal)}
-              className="flex items-center gap-1.5 group"
+              className="flex items-center gap-1 group"
             >
               <span className="font-ui text-[10px]" style={{ color: 'var(--color-ink-muted)' }}>今日</span>
-              <span
-                className={`font-display font-semibold text-base ${goalPct >= 100 ? '' : ''}`}
-                style={{ color: goalPct >= 100 ? 'var(--color-sage)' : 'var(--color-ink-soft)' }}
-              >
+              <span className={`font-display font-semibold text-base ${goalPct >= 100 ? '' : ''}`}
+                style={{ color: goalPct >= 100 ? 'var(--color-sage)' : 'var(--color-ink-soft)' }}>
                 {daily.todayReviewed}
               </span>
               <span className="font-ui text-[11px]" style={{ color: 'var(--color-warm-border)' }}>/</span>
               {editingGoal ? (
                 <input
-                  type="number"
-                  value={daily.goal}
-                  min={1} max={200}
+                  type="number" value={daily.goal} min={1} max={200}
                   className="w-12 text-center border-b bg-transparent outline-none font-display text-base"
-                  style={{
-                    borderColor: 'var(--color-terracotta)',
-                    color: 'var(--color-ink-soft)',
-                  }}
-                  onChange={e => {
-                    const v = parseInt(e.target.value) || 20
-                    setDaily({ ...daily, goal: v })
-                  }}
-                  onBlur={() => {
-                    setDailyGoal(daily.goal)
-                    setEditingGoal(false)
-                    loadDailyStats()
-                  }}
+                  style={{ borderColor: 'var(--color-terracotta)', color: 'var(--color-ink-soft)' }}
+                  onChange={e => { const v = parseInt(e.target.value) || 20; setDaily({ ...daily, goal: v }) }}
+                  onBlur={() => { setDailyGoal(daily.goal); setEditingGoal(false); loadDailyStats() }}
+                  onKeyDown={e => { if (e.key === 'Enter') { setDailyGoal(daily.goal); setEditingGoal(false); loadDailyStats() } }}
                   autoFocus
                 />
               ) : (
-                <span className="font-ui text-xs group-hover:underline group-hover:underline-offset-2" style={{ color: 'var(--color-ink-muted)' }}>
+                <span className="font-display font-semibold text-base group-hover:opacity-60 transition-opacity" style={{ color: 'var(--color-ink-soft)' }}>
                   {daily.goal}
+                  <span className="font-ui text-[9px] font-normal opacity-0 group-hover:opacity-50 ml-0.5" style={{ color: 'var(--color-ink-muted)' }}>✎</span>
                 </span>
               )}
             </button>
