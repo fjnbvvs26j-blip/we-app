@@ -22,19 +22,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 启动时：检查是否有已有 Supabase 会话
   useEffect(() => {
+    // 30 秒兜底：无论如何强制结束 loading，防止网络不通时永久卡住
+    const safetyTimer = setTimeout(() => {
+      setLoading(false)
+    }, 30000)
+
     checkSession()
 
     // 监听 auth 状态变化（登录、登出、token 刷新等）
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        await loadProfile(session.user.id, session.user.email!)
+        try {
+          await loadProfile(session.user.id, session.user.email!)
+        } catch {
+          // 网络失败时静默降级，不要阻塞渲染
+          setUser(null)
+        }
       } else {
         setUser(null)
       }
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      clearTimeout(safetyTimer)
+      subscription.unsubscribe()
+    }
   }, [])
 
   async function checkSession() {
