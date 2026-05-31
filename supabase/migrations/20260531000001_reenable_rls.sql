@@ -64,12 +64,17 @@ ALTER TABLE wall_notes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS wall_read_own ON wall_notes;
 CREATE POLICY wall_read_own ON wall_notes
   FOR SELECT TO authenticated
-  USING (author_id = auth.uid()::text);
+  USING (user_id = auth.uid()::text);
 
 DROP POLICY IF EXISTS wall_insert_own ON wall_notes;
 CREATE POLICY wall_insert_own ON wall_notes
   FOR INSERT TO authenticated
-  WITH CHECK (author_id = auth.uid()::text);
+  WITH CHECK (user_id = auth.uid()::text);
+
+DROP POLICY IF EXISTS wall_delete_own ON wall_notes;
+CREATE POLICY wall_delete_own ON wall_notes
+  FOR DELETE TO authenticated
+  USING (user_id = auth.uid()::text);
 
 -- ═══ topic_answers: 自己可见 ═══
 ALTER TABLE topic_answers ENABLE ROW LEVEL SECURITY;

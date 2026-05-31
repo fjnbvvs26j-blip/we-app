@@ -76,15 +76,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('邮箱已注册，请直接登录')
     }
 
-    // 关闭了邮箱验证：session 立即返回
     if (data.session) {
+      // 关闭了邮箱验证：session 立即返回
       await supabase.from('profiles').upsert({
         id: data.user.id,
         nickname: nickname || email.split('@')[0],
       })
       await loadProfile(data.user.id, data.user.email!)
+    } else {
+      // 开启了邮箱验证：没有 session → 自动补一次登录
+      await signIn(email, password)
+      return
     }
-    // 开启了邮箱验证：data.session 为 null，需检查邮箱
   }
 
   async function signIn(email: string, password: string) {
