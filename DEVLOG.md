@@ -18,84 +18,111 @@
 - **后端：** Supabase（PostgreSQL + Auth + Storage）
 - **架构：** feature-based 目录组织，service 层隔离数据访问
 - **数据库：** 每表预留 `metadata JSONB` 扩展字段
-- **认证：** 极简邮箱登录，关闭邮件验证（`mailer_autoconfirm: true`）
 
 ### 已完成
 1. ✅ 项目脚手架（Vite + React + TS + Tailwind）
 2. ✅ Supabase 项目创建（Tokyo 区域，ref: `kcgkrgalxgparkryzbhj`）
 3. ✅ 12 张数据库表 + 索引 + RLS 策略（`001_init.sql`）
-4. ✅ Auto-profile 触发器（新用户注册自动创建 profile）
-5. ✅ AuthPage（登录/注册切换）+ AuthProvider + 路由守卫
-6. ✅ Supabase CLI 配置 + 迁移历史管理
-7. ✅ 开发服务器运行在 localhost:5173
+4. ✅ Auto-profile 触发器
+5. ✅ AuthPage + AuthProvider + 路由守卫
+6. ✅ 开发服务器运行在 localhost:5173
 
 ### 遇到的问题 & 解决
-- **问题：** 脚手架工具因目录非空取消 → **解决：** 手动 `npm init` + 安装依赖
-- **问题：** Node.js 未安装 → **解决：** `brew install node`
-- **问题：** CLI 无法在非 TTY 环境登录 → **解决：** 用户生成 Personal Access Token
-- **问题：** 首次 db push 因 RLS 策略已存在报错 → **解决：** `migration repair` 标记已执行
-
-### 发现的问题 & 解决
-- **问题：** Supabase Auth SDK 导致页面无限加载/空白 → **根因：** `getSession()` / `onAuthStateChange()` 调用挂起
-- **解决：** 改用 localStorage 本地认证 + Supabase 仅做数据库，关闭 RLS，移除 auth.users 外键依赖
-- **经验：** 对于 2 人小型 App，Supabase Auth 的复杂度远超价值，本地认证足够
+- Supabase Auth SDK 导致页面无限加载 → 最初改用 localStorage 本地认证（后续在 2026-05-31 晚已重新接入真实 Supabase Auth）
 
 ---
 
-## 2026-05-31 — 单词模块深度增强 + UI 美化
+## 2026-05-31（早） — 单词模块深度增强 + UI 美化
 
 ### SM-2 算法完善
-- **忘记重置：** 之前认识的词又被标不认识 → review_count 归零，间隔从 4 小时重新开始
-- **追踪拆分：** 在 vocab_progress.metadata 中记录 times_known / times_unknown，用于搜索和易错词本
+- 忘记的词 review_count 归零，间隔从 4 小时重新开始
+- metadata 中记录 times_known / times_unknown
 
-### 学习体验优化
-- **本轮完成页：** 最后一词划完后显示"本轮完成！🎉"，可选"继续背单词"或修改每轮数量
-- **每轮词数可调：** 默认 10 词，点击可改（3-50），存 localStorage，修改后立即生效
-- **每日目标：** 默认 20 词/天，点击数字可编辑，环形进度条实时显示百分比
-- **连续打卡：** 每天首次学习自动记录，存在 localStorage
+### 功能
+- 本轮完成页、每轮词数可调（3-50）、每日目标（环形进度）、连续打卡
+- 单词搜索（前缀匹配）、易错词本（≥2 次不认识）
+- 周报（近 7 天柱状图）、英文例句（4214 词）、考研真题频次（5301 词）
 
-### 新功能
-- **单词搜索：** 前缀匹配搜索，显示复习次数、✓认识/✗不认识计数、学习状态
-- **易错词本：** 不认识 ≥2 次的词自动归入，按错误次数降序排列
-- **周报：** 新 Tab，展示近 7 天每日柱状图（复习/新学），周总览统计
+### UI 美化
+- **设计方向：** 暖调书房 — 奶油纸色 `#FCF7F0`、暖棕 `#2C1810`/`#5C3D2E`、陶土橙 `#B8652B`、鼠尾草绿 `#6B8F71`
+- **字体：** Playfair Display + Noto Serif SC + Figtree
+- AuthPage / VocabPage / FlashCard 全面重写
+- 统计卡片可点击查看单词列表 + 单词咨询弹窗（翻页 + 搜索）
 
-### 数据增强
-- **英文例句：** 调用 Free Dictionary API，4214/5407 词获得例句 ✅
-- **中文翻译：** 调用 Google Translate API，3142 条例句翻译中（后台运行，~700/3142）
-- **考研真题频次：** 从 exam-data/NETEMVocabulary（5530 词、200+ 套试卷统计）导入，匹配 5301 词，正在逐条写入（~2000/5301）
-- **一词多义：** 下载 ECDICT stardict.csv（77 万词），解析多义项，熟词僻义用 `**僻义**` 标粗，正在扫描匹配（222MB CSV）
-- **数据存储：** exam_frequency 和 times_known/times_unknown 暂存于 JSONB metadata 字段，迁移 SQL 已写好可随时执行
+---
 
-### UI 美化（已完成）
-- **设计方向：** 暖调书房 / 纸本笔记本 — 奶油纸色 `#FCF7F0`、暖棕墨水 `#2C1810`/`#5C3D2E`、陶土橙 `#B8652B`/`#D4874A`、鼠尾草绿 `#6B8F71`
-- **字体：** Playfair Display（英文展示）+ Noto Serif SC（中文正文）+ Figtree（UI 标注）
-- **CSS 设计系统：** 完整 CSS 变量体系、纸张纹理背景、`card-warm`/`btn-primary`/`btn-secondary`/`input-warm` 组件类、入场动画（fadeUp/scaleIn/stagger）
-- **AuthPage 重写：** 暖色调卡片表单、装饰渐变光晕、角落金线、品牌区域设计
-- **VocabPage 全面重写：** 统计卡片、打卡进度环、Tab 切换、搜索/易错/周报全部统一设计语言
-- **FlashCard 重写：** 顶部/底部装饰线、精制正反面排版、纸质阴影、改进按钮样式
-- **僻义渲染：** `**僻义**` 以陶土橙粗体显示，FlashCard 和搜索结果中均生效
+## 2026-05-31（晚） — 真实认证 + 多设备部署
 
-### 新功能：统计卡片单词列表
-- **学习中 / 待复习 / 已掌握 / 总词库** 统计卡片可点击，弹出对应单词列表
-- **总词库** 按字母顺序排序，其余按复习次数排序
-- **单词咨询弹窗：** 点击列表中单词可查看详情（音标、释义、例句、复习统计、频度标签）
-- **翻页浏览：** 咨询弹窗支持「上一个 / 下一个」前后翻阅，显示当前页码
-- **列表内搜索：** 顶部搜索框可实时过滤单词（匹配单词名或释义关键词）
+### Supabase Auth 接入（重大架构变更）
+- **之前：** localStorage 模拟认证，密码被丢弃，任何人可登录
+- **之后：** 接入真实 Supabase Auth（`auth.service.ts` 已有，之前未使用）
+  - `signUp()` → `supabase.auth.signUp()`，服务端 bcrypt 哈希
+  - `signIn()` → `supabase.auth.signInWithPassword()`，服务端校验
+  - `getSession()` 启动时检查已有会话
+  - `onAuthStateChange()` 监听 token 刷新
+- 删除 localStorage 认证逻辑（`we_user` key、`crypto.randomUUID()`）
+- 保留 auto-profile trigger（新用户注册自动创建 profiles 行）
 
-### Supabase 性能修复
-- **1000 行限制绕过：** Supabase 默认单次最多 1000 行 → 重写 `getAllWordsSorted` 为分页串行，确保所有词都被取回
-- **加载速度优化：** 从逐批串行（34 轮网络请求）→ 全并行（2 轮网络等待），5000 词加载从 ~3-5 秒降至 ~300-500ms
+### RLS 数据隔离
+- **之前：** 所有表 RLS 关闭，anon key 可读写全库
+- **之后：** 为 vocab_progress / vocab_quizzes / profiles 等表启用 RLS
+  - `user_id = auth.uid()::text`（列是 TEXT 类型，需要显式转型）
+  - vocab_words 等共享表：所有已认证用户只读
+- **SQL 文件：** `supabase/migrations/20260531000001_reenable_rls.sql`
 
-### Bug 修复
-- **柱状图超出方框：** 容器加 `overflow-hidden` + 高度算法改为按总和最大值等比缩放
-- **柱状图颜色不可见：** `--color-warm-border` 几乎是白色 → 改为 `--color-terracotta-light` 和 `--color-sage`
+### 邮箱验证处理
+- Supabase 默认开启邮箱验证，注册后不发 session
+- 创建 auto_confirm_email trigger，自动标记 `email_confirmed_at`
+- 代码层：注册后若未获得 session，自动补一次 `signIn()`
 
-### Claude Code Skills 安装
-- 克隆 anthropics/skills（117k ⭐），symlink 到 .claude/skills/
-- 17 个官方 Skill 可用，含 frontend-design、web-artifacts-builder、webapp-testing
-- frontend-design 技能指导了本次 UI 美化的设计方向
+### 部署
+
+| 平台 | URL | 状态 |
+|------|-----|------|
+| Vercel | https://we-xi-five.vercel.app | 国内需 VPN |
+| Netlify（主） | **https://we-app-181.netlify.app** | 永久，国内直连 |
+
+- **Git 仓库：** https://github.com/fjnbvvs26j-blip/we-app
+- **GitHub 认证：** `gh` CLI 已配置（账号 fjnbvvs26j-blip）
+- **Netlify 认证：** 已登录（邮箱 fjnbvvs26j@privaterelay.appleid.com）
+- **部署命令：** `npm run build && npx netlify-cli deploy --dir=dist --prod`
+
+### 部署中遇到的构建问题 & 解决
+- `tsc -b` 在 Vercel 报 TS5101（baseUrl 弃用）→ 添加 `ignoreDeprecations: "6.0"`
+- `tsc -b` 仍有多个类型错误 → build 命令简化为 `vite build`（Vite 自身处理 TS 编译）
+- PostgrestFilterBuilder 不兼容 Promise.all → 用 `.then(r => r)` 包装
+
+### 手机端优化（2026-05-31 深夜）
+- **触摸滑动：** FlashCard 添加 touchStart/Move/End 手势，超过 60px 阈值触发，跟手拖拽
+- **即时翻卡：** saveProgress 改为 fire-and-forget，不再 await 网络请求，卡片瞬间切换
+- **总词库加载加速：** 所有词页并行获取 + 统一批量查进度，5000 词从 10+ 轮串行 → 2 轮等待
+
+---
+
+## 关键信息速查
+
+### 运行项目
+```bash
+cd /Users/orange/Desktop/we
+npm run dev        # 本地开发
+npm run build      # 生产构建
+```
+
+### 部署
+```bash
+npm run build && npx netlify-cli deploy --dir=dist --prod
+```
+
+### 线上地址
+- **主力：** https://we-app-181.netlify.app
+- 备用：https://we-xi-five.vercel.app（需 VPN）
+
+### Supabase 项目
+- **Dashboard：** https://supabase.com/dashboard/project/kcgkrgalxgparkryzbhj
+- **SQL Editor：** 用于执行迁移和查询
 
 ### 下一步
-- 等待后台任务完成（例句翻译、词频导入、多义项更新）
 - 添加伴侣关联功能
 - 启用互动出题
+- 考研数学模块
+- 恋爱互动模块
