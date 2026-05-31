@@ -333,33 +333,66 @@ export default function VocabPage() {
 
             <div className="w-px h-6" style={{ backgroundColor: 'var(--color-warm-border)' }} />
 
-            <button
-              onClick={() => setEditingGoal(!editingGoal)}
-              className="flex items-center gap-1 group"
-            >
-              <span className="font-ui text-[10px]" style={{ color: 'var(--color-ink-muted)' }}>今日</span>
-              <span className={`font-display font-semibold text-base ${goalPct >= 100 ? '' : ''}`}
-                style={{ color: goalPct >= 100 ? 'var(--color-sage)' : 'var(--color-ink-soft)' }}>
-                {daily.todayReviewed}
-              </span>
-              <span className="font-ui text-[11px]" style={{ color: 'var(--color-warm-border)' }}>/</span>
-              {editingGoal ? (
-                <input
-                  type="number" value={daily.goal} min={1} max={200}
-                  className="w-12 text-center border-b bg-transparent outline-none font-display text-base"
-                  style={{ borderColor: 'var(--color-terracotta)', color: 'var(--color-ink-soft)' }}
-                  onChange={e => { const v = parseInt(e.target.value) || 20; setDaily({ ...daily, goal: v }) }}
-                  onBlur={() => { setDailyGoal(daily.goal); setEditingGoal(false); loadDailyStats() }}
-                  onKeyDown={e => { if (e.key === 'Enter') { setDailyGoal(daily.goal); setEditingGoal(false); loadDailyStats() } }}
-                  autoFocus
-                />
-              ) : (
+            <div className="relative">
+              <button
+                onClick={() => setEditingGoal(!editingGoal)}
+                className="flex items-center gap-1 group"
+              >
+                <span className="font-ui text-[10px]" style={{ color: 'var(--color-ink-muted)' }}>今日</span>
+                <span className="font-display font-semibold text-base"
+                  style={{ color: goalPct >= 100 ? 'var(--color-sage)' : 'var(--color-ink-soft)' }}>
+                  {daily.todayReviewed}
+                </span>
+                <span className="font-ui text-[11px]" style={{ color: 'var(--color-warm-border)' }}>/</span>
                 <span className="font-display font-semibold text-base group-hover:opacity-60 transition-opacity" style={{ color: 'var(--color-ink-soft)' }}>
                   {daily.goal}
                   <span className="font-ui text-[9px] font-normal opacity-0 group-hover:opacity-50 ml-0.5" style={{ color: 'var(--color-ink-muted)' }}>✎</span>
                 </span>
+              </button>
+
+              {editingGoal && (
+                <div
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 card-warm !rounded-2xl p-4 z-10 shadow-lg animate-scale-in"
+                  style={{ backgroundColor: 'var(--color-warm-bg-card)' }}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <button
+                      onClick={() => setDaily(d => ({ ...d, goal: Math.max(1, d.goal - 5) }))}
+                      className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg active:scale-90 transition-all"
+                      style={{ backgroundColor: 'var(--color-paper)', color: 'var(--color-ink-soft)' }}
+                    >−</button>
+                    <span className="font-display text-xl font-bold min-w-[3ch] text-center" style={{ color: 'var(--color-ink)' }}>
+                      {daily.goal}
+                    </span>
+                    <button
+                      onClick={() => setDaily(d => ({ ...d, goal: Math.min(200, d.goal + 5) }))}
+                      className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg active:scale-90 transition-all"
+                      style={{ backgroundColor: 'var(--color-paper)', color: 'var(--color-ink-soft)' }}
+                    >+</button>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[10, 20, 30, 50].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => { setDaily(d => ({ ...d, goal: n })); setDailyGoal(n); setEditingGoal(false); loadDailyStats() }}
+                        className={`flex-1 py-1.5 rounded-lg font-ui text-xs font-medium transition-all active:scale-95 ${
+                          daily.goal === n ? '' : ''
+                        }`}
+                        style={{
+                          backgroundColor: daily.goal === n ? 'var(--color-terracotta)' : 'var(--color-paper)',
+                          color: daily.goal === n ? 'white' : 'var(--color-ink-muted)',
+                        }}
+                      >{n}</button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => { setDailyGoal(daily.goal); setEditingGoal(false); loadDailyStats() }}
+                    className="w-full mt-2 py-1.5 rounded-lg font-ui text-xs font-medium transition-all"
+                    style={{ backgroundColor: 'var(--color-sage)', color: 'white' }}
+                  >确定</button>
+                </div>
               )}
-            </button>
+            </div>
 
             <ProgressRing pct={goalPct} />
           </div>
