@@ -18,53 +18,28 @@ const AuthContext = createContext<AuthState | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  // 不阻塞：直接显示登录页，session 在后台静默检查
+  const [loading, setLoading] = useState(false)
 
-  // 启动时：检查是否有已有 Supabase 会话
   useEffect(() => {
-    // 30 秒兜底：无论如何强制结束 loading，防止网络不通时永久卡住
-    const safetyTimer = setTimeout(() => {
-      setLoading(false)
-    }, 30000)
-
-    checkSession()
-
-    // 监听 auth 状态变化（登录、登出、token 刷新等）
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // 后台检查已有会话（不阻塞渲染）
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        try {
-          await loadProfile(session.user.id, session.user.email!)
-        } catch {
-          // 网络失败时静默降级，不要阻塞渲染
-          setUser(null)
-        }
+        loadProfile(session.user.id, session.user.email!).catch(() => {})
+      }
+    }).catch(() => {})
+
+    // 监听 auth 状态变化
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        loadProfile(session.user.id, session.user.email!).catch(() => setUser(null))
       } else {
         setUser(null)
       }
-      setLoading(false)
     })
 
-    return () => {
-      clearTimeout(safetyTimer)
-      subscription.unsubscribe()
-    }
+    return () => subscription.unsubscribe()
   }, [])
-
-  async function checkSession() {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        try {
-          await loadProfile(session.user.id, session.user.email!)
-        } catch {
-          setUser({ id: session.user.id, email: session.user.email!, nickname: '' })
-        }
-      }
-    } catch {
-      // 静默处理，未登录
-    }
-    setLoading(false)
-  }
 
   async function loadProfile(uid: string, email: string) {
     // 从 profiles 表拉取用户信息
