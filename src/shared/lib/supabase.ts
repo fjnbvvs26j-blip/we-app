@@ -9,10 +9,10 @@ const supabaseUrl = isLocal
   : PROXY_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// 自定义 fetch：对所有请求加 12 秒超时，防止网络不通时无限挂起
+// 自定义 fetch：对所有请求加 20 秒超时，防止网络不通时无限挂起
 function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 12000)
+  const timeoutId = setTimeout(() => controller.abort(), 20000)
 
   // 如果已有外部 signal，合并；否则直接用 controller.signal
   const signal = init?.signal ? combineSignals(init.signal, controller.signal) : controller.signal
@@ -30,6 +30,6 @@ function combineSignals(a: AbortSignal, b: AbortSignal): AbortSignal {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  db: { timeout: 10000 },
+  db: { timeout: 20000 },
   global: { fetch: fetchWithTimeout },
 })

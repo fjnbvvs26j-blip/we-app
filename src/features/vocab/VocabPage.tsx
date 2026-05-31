@@ -193,25 +193,29 @@ export default function VocabPage() {
     setRoundComplete(false)
     try {
       const size = getRoundSize()
-      const review = await vocabService.getReviewWords(user.id, size)
+      const [review, newWords] = await Promise.all([
+        vocabService.getReviewWords(user.id, size),
+        vocabService.getNewWords(user.id, size),
+      ])
       const reviewWords = review.map(r => r.vocab_words)
+      let allWords = [...reviewWords, ...newWords].slice(0, size)
 
-      let allWords = [...reviewWords]
-      if (allWords.length < size) {
-        const need = size - allWords.length
-        const newWords = await vocabService.getNewWords(user.id, need)
-        allWords = [...allWords, ...newWords]
-      }
-
-      const st = await vocabService.getStats(user.id)
-      const wordCount = await vocabService.getWordCount()
-
+      // 如果没有复习词也没有新词，可能是全部学完了
       setWords(allWords)
-      setStats({ total: st.total, known: st.known, learning: st.learning, due: st.due, vocabTotal: wordCount })
       setIndex(0)
       setReady(true)
+
+      // stats 非阻塞：闪卡先出来，统计异步更新
+      vocabService.getStats(user.id).then(st => {
+        setStats(prev => ({ ...prev, total: st.total, known: st.known, learning: st.learning, due: st.due }))
+      }).catch(() => {})
+      vocabService.getWordCount().then(count => {
+        setStats(prev => ({ ...prev, vocabTotal: count }))
+      }).catch(() => {})
     } catch (e) {
-      setError(e instanceof Error ? e.message : '加载失败')
+      const msg = e instanceof Error ? e.message : '加载失败'
+      const isTimeout = /abort|timeout|Abort/i.test(msg)
+      setError(isTimeout ? '网络超时，请检查网络后重试' : msg)
       setReady(true)
     }
   }
@@ -256,24 +260,29 @@ export default function VocabPage() {
   }
 
   async function loadDifficultWords() {
-    if (!user || difficultLoaded) return
+    if (!user) return
+    if (!dedup('difficult', 15000)) return
     try {
       const dw = await vocabService.getDifficultWords(user.id, 20)
       setDifficultWords(dw)
+      setDifficultLoaded(true)
     } catch { /* 静默 */ }
-    setDifficultLoaded(true)
   }
 
   async function loadWeeklyStats() {
     if (!user) return
     try {
-      const [ws, reset, freq, difficult20] = await Promise.all([
+      const results = await Promise.allSettled([
         vocabService.getWeeklyStats(user.id),
         vocabService.getWeeklyResetWords(user.id),
         vocabService.getWeeklyFrequencyBreakdown(user.id),
         vocabService.getDifficultWords(user.id, 20),
       ])
-      setWeekly({ ...ws, resetCount: reset.count, resetWords: reset.words, freqBreakdown: freq, difficultTop20: difficult20 })
+      const ws    = results[0].status === 'fulfilled' ? results[0].value : { days: [], totalReviewed: 0, totalNew: 0 } as WeeklyStats
+      const reset = results[1].status === 'fulfilled' ? results[1].value : { count: 0, words: [] as WordDetail[] }
+      const freq  = results[2].status === 'fulfilled' ? results[2].value : { high: 0, medium: 0, low: 0 }
+      const diff20 = results[3].status === 'fulfilled' ? results[3].value : [] as WordDetail[]
+      setWeekly({ ...ws, resetCount: reset.count, resetWords: reset.words, freqBreakdown: freq, difficultTop20: diff20 })
     } catch { /* 静默 */ }
     setWeeklyLoaded(true)
   }
@@ -678,7 +687,7 @@ export default function VocabPage() {
                       个易错词
                     </p>
                     <button
-                      onClick={() => { setDifficultLoaded(false); loadDifficultWords() }}
+                      onClick={() => { lastFetch.current.delete('difficult'); setDifficultLoaded(false); loadDifficultWords() }}
                       className="font-ui text-xs transition-colors"
                       style={{ color: 'var(--color-terracotta)' }}
                     >
@@ -946,9 +955,17 @@ export default function VocabPage() {
                   <p className="font-ui text-xs mt-2" style={{ color: 'var(--color-ink-muted)' }}>
                     <span className="opacity-60">开始背单词后会显示在这里</span>
                   </p>
-                  <button onClick={() => setMode('flashcard')} className="btn-primary mt-6">
-                    去背单词
-                  </button>
+                  <div className="flex gap-2 justify-center mt-6">
+                    <button onClick={() => setMode('flashcard')} className="btn-primary">
+                      去背单词
+                    </button>
+                    <button
+                      onClick={() => { setWeeklyLoaded(false); loadWeeklyStats() }}
+                      className="btn-secondary text-xs"
+                    >
+                      刷新重试
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
