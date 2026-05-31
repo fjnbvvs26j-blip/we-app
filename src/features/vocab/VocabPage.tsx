@@ -152,22 +152,20 @@ export default function VocabPage() {
     } catch { /* 静默 */ }
   }
 
-  async function handleResult(known: boolean) {
+  function handleResult(known: boolean) {
     if (!user || words.length === 0) return
     const word = words[index]
-    try {
-      await vocabService.saveProgress(user.id, word.id, known)
-    } catch { /* 静默失败 */ }
+    // 火后不理：保存进度不阻塞翻卡
+    vocabService.saveProgress(user!.id, word.id, known).catch(() => {})
 
     if (index < words.length - 1) {
       setIndex(i => i + 1)
     } else {
       setRoundComplete(true)
       loadDailyStats()
-      try {
-        const st = await vocabService.getStats(user.id)
+      vocabService.getStats(user!.id).then(st => {
         setStats(prev => ({ ...prev, total: st.total, known: st.known, learning: st.learning, due: st.due }))
-      } catch { /* 静默 */ }
+      }).catch(() => {})
     }
   }
 

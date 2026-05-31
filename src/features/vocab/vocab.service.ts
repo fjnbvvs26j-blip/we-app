@@ -422,46 +422,56 @@ export const vocabService = {
     }).filter(Boolean) as WordDetail[]
   },
 
-  /** 获取总词库，按字母顺序排序（分页串行，绕过 1000 行限制，速度足够） */
+  /** 获取总词库，按字母排序（所有词页并行 + 单次批量进度查询，仅 2 轮等待） */
   async getAllWordsSorted(userId: string): Promise<WordDetail[]> {
     const pageSize = 1000
-    let page = 0
-    let allWords: VocabWord[] = []
-    const allProgress: Map<string, any> = new Map()
 
-    // 循环分页取词（每次取 1000 词 + 查对应进度）
-    while (true) {
-      const from = page * pageSize
-      const to = from + pageSize - 1
-      const { data: words, error } = await supabase
-        .from('vocab_words')
-        .select('*')
-        .order('word', { ascending: true })
-        .range(from, to)
+    // 第 1 轮：总数 + 第一页
+    const [{ count }, firstPage] = await Promise.all([
+      supabase.from('vocab_words').select('*', { count: 'exact', head: true }).then(r => r),
+      supabase.from('vocab_words').select('*').order('word', { ascending: true }).range(0, pageSize - 1).then(r => r),
+    ])
+    const total = count || 0
+    if (firstPage.error || !firstPage.data || firstPage.data.length === 0) return []
 
-      if (error || !words || words.length === 0) break
+    const allWords: VocabWord[] = [...firstPage.data] as VocabWord[]
 
-      // 查询这批词的进度
-      const wordIds = words.map(w => w.id)
+    // 第 2 轮：剩余词页并行获取 + 全部进度查询
+    const remainingPages = Math.ceil(total / pageSize) - 1
+    if (remainingPages > 0) {
+      const pagePromises = []
+      for (let i = 1; i <= remainingPages; i++) {
+        const from = i * pageSize
+        const to = from + pageSize - 1
+        pagePromises.push(
+          supabase.from('vocab_words').select('*').order('word', { ascending: true }).range(from, to).then(r => r)
+        )
+      }
+      const results = await Promise.all(pagePromises)
+      for (const r of results) {
+        if (r.data && r.data.length > 0) allWords.push(...r.data)
+      }
+    }
+
+    // 批量拉进度（一次查询覆盖所有词）
+    const allWordIds = allWords.map(w => w.id)
+    const progressMap = new Map<string, any>()
+    // 分批查进度：in 子句最多 ~10000 个元素，安全起见每 2000 个一批
+    for (let i = 0; i < allWordIds.length; i += 2000) {
+      const batch = allWordIds.slice(i, i + 2000)
       const { data: progress } = await supabase
         .from('vocab_progress')
         .select('*')
         .eq('user_id', userId)
-        .in('word_id', wordIds)
-
+        .in('word_id', batch)
+        .then(r => r)
       if (progress) {
-        for (const p of progress) {
-          allProgress.set(p.word_id, p)
-        }
+        for (const p of progress) progressMap.set(p.word_id, p)
       }
-
-      allWords = allWords.concat(words)
-      if (words.length < pageSize) break
-      page++
     }
 
     return allWords.map(w => {
-      const p = allProgress.get(w.id)
+      const p = progressMap.get(w.id)
       const meta = (p?.metadata as any) || {}
       return {
         ...w,

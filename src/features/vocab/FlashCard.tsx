@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import type { VocabWord } from './vocab.types'
 
 function RichMeaning({ text }: { text: string }) {
@@ -27,19 +27,71 @@ type Props = {
 export default function FlashCard({ word, onKnown, onUnknown }: Props) {
   const [flipped, setFlipped] = useState(false)
   const [leaving, setLeaving] = useState<'left' | 'right' | null>(null)
+  const [dragX, setDragX] = useState(0)
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const isDragging = useRef(false)
 
   function handleSwipe(direction: 'left' | 'right') {
     setLeaving(direction)
     setTimeout(() => {
       setFlipped(false)
       setLeaving(null)
+      setDragX(0)
       if (direction === 'right') onKnown()
       else onUnknown()
     }, 300)
   }
 
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (leaving) return
+    const t = e.touches[0]
+    touchStart.current = { x: t.clientX, y: t.clientY }
+    isDragging.current = false
+  }, [leaving])
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStart.current || leaving) return
+    const t = e.touches[0]
+    const dx = t.clientX - touchStart.current.x
+    const dy = t.clientY - touchStart.current.y
+
+    // 水平滑动超过垂直滑动才触发（避免和页面滚动冲突）
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 5) {
+      isDragging.current = true
+      setDragX(dx)
+    }
+  }, [leaving])
+
+  const onTouchEnd = useCallback(() => {
+    if (!isDragging.current || leaving) {
+      setDragX(0)
+      touchStart.current = null
+      return
+    }
+
+    const threshold = 60
+    if (dragX > threshold) {
+      handleSwipe('right')
+    } else if (dragX < -threshold) {
+      handleSwipe('left')
+    } else {
+      setDragX(0)
+    }
+    touchStart.current = null
+    isDragging.current = false
+  }, [dragX, leaving])
+
+  // 计算拖拽时的旋转和透明度
+  const dragOpacity = dragX ? Math.max(0.3, 1 - Math.abs(dragX) / 250) : 1
+  const dragRotate = dragX ? (dragX / window.innerWidth) * 15 : 0
+
   return (
-    <div className="flex flex-col items-center gap-5 px-4 select-none animate-fade-up">
+    <div
+      className="flex flex-col items-center gap-5 px-4 select-none animate-fade-up"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       {/* 提示 */}
       <div className="flex items-center gap-3 font-ui text-xs tracking-wide" style={{ color: 'var(--color-ink-muted)' }}>
         <span className="flex items-center gap-1">
@@ -60,14 +112,21 @@ export default function FlashCard({ word, onKnown, onUnknown }: Props) {
 
       {/* 卡片 */}
       <div
-        onClick={() => !leaving && setFlipped(!flipped)}
+        onClick={() => { if (!leaving && !isDragging.current) setFlipped(!flipped) }}
         className={`
           relative w-full max-w-sm aspect-[4/3] cursor-pointer
-          transition-all duration-300
+          ${leaving ? 'transition-all duration-300' : ''}
           ${leaving === 'right' ? 'translate-x-[200%] opacity-0 rotate-6' : ''}
           ${leaving === 'left' ? '-translate-x-[200%] opacity-0 -rotate-6' : ''}
         `}
-        style={{ perspective: '1000px' }}
+        style={{
+          perspective: '1000px',
+          ...(leaving ? {} : {
+            transform: dragX ? `translateX(${dragX}px) rotate(${dragRotate}deg)` : undefined,
+            opacity: dragOpacity,
+            transition: dragX ? 'none' : undefined,
+          }),
+        }}
       >
         <div
           className="relative w-full h-full transition-transform duration-500 ease-out"
@@ -76,7 +135,7 @@ export default function FlashCard({ word, onKnown, onUnknown }: Props) {
             transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
           }}
         >
-          {/* ─── 正面：单词 ─── */}
+          {/* 正面：单词 */}
           <div
             className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-3 px-6"
             style={{
@@ -86,44 +145,26 @@ export default function FlashCard({ word, onKnown, onUnknown }: Props) {
               border: '1px solid rgba(232, 221, 208, 0.4)',
             }}
           >
-            {/* 顶部装饰线 */}
             <div className="absolute top-4 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#D4C8B8] to-transparent opacity-40" />
-
-            <span
-              className="font-display text-[2.5rem] md:text-[2.75rem] font-bold tracking-tight text-center"
-              style={{ color: 'var(--color-ink)' }}
-            >
+            <span className="font-display text-[2.5rem] md:text-[2.75rem] font-bold tracking-tight text-center" style={{ color: 'var(--color-ink)' }}>
               {word.word}
             </span>
-
             {word.phonetic && (
-              <span className="font-ui text-sm" style={{ color: 'var(--color-ink-muted)' }}>
-                {word.phonetic}
-              </span>
+              <span className="font-ui text-sm" style={{ color: 'var(--color-ink-muted)' }}>{word.phonetic}</span>
             )}
-
             {(word.metadata?.exam_frequency || 0) > 0 && (
-              <span
-                className="font-ui text-[11px] font-medium px-2.5 py-1 rounded-full"
-                style={{
-                  color: 'var(--color-terracotta)',
-                  backgroundColor: 'rgba(184, 101, 43, 0.08)',
-                }}
-              >
+              <span className="font-ui text-[11px] font-medium px-2.5 py-1 rounded-full"
+                style={{ color: 'var(--color-terracotta)', backgroundColor: 'rgba(184, 101, 43, 0.08)' }}>
                 真题出现 {word.metadata.exam_frequency} 次
               </span>
             )}
-
-            {/* 底部装饰线 */}
-            <div className="absolute bottom-4 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#D4C8B8] to-transparent opacity-40" />
-
-            {/* 翻转提示 */}
             <span className="font-ui text-[11px] absolute bottom-7" style={{ color: 'var(--color-ink-muted)' }}>
               <span className="opacity-40">点击翻转</span>
             </span>
+            <div className="absolute bottom-4 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#D4C8B8] to-transparent opacity-40" />
           </div>
 
-          {/* ─── 背面：释义 ─── */}
+          {/* 背面：释义 */}
           <div
             className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-4 px-6 py-6 overflow-auto"
             style={{
@@ -134,11 +175,8 @@ export default function FlashCard({ word, onKnown, onUnknown }: Props) {
               border: '1px solid rgba(232, 221, 208, 0.4)',
             }}
           >
-            {/* 顶部装饰线 */}
             <div className="absolute top-4 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#D4C8B8] to-transparent opacity-40" />
-
             <RichMeaning text={word.meaning} />
-
             {word.example && (
               <div className="relative px-4 py-2 rounded-lg w-full max-w-xs" style={{ backgroundColor: 'rgba(232, 221, 208, 0.2)' }}>
                 <span className="font-body text-sm italic leading-relaxed block text-center" style={{ color: 'var(--color-ink-muted)' }}>
@@ -146,28 +184,21 @@ export default function FlashCard({ word, onKnown, onUnknown }: Props) {
                 </span>
               </div>
             )}
-
-            {/* 底部装饰线 */}
             <div className="absolute bottom-4 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#D4C8B8] to-transparent opacity-40" />
           </div>
         </div>
       </div>
 
-      {/* ─── 操作按钮 ─── */}
+      {/* 操作按钮 */}
       <div className="flex gap-6 mt-1">
         <button
           onClick={() => handleSwipe('left')}
           className="group relative w-16 h-16 rounded-full flex items-center justify-center font-ui text-sm font-medium transition-all active:scale-90"
-          style={{
-            backgroundColor: 'white',
-            border: '2px solid var(--color-warm-border)',
-            color: 'var(--color-ink-muted)',
-          }}
+          style={{ backgroundColor: 'white', border: '2px solid var(--color-warm-border)', color: 'var(--color-ink-muted)' }}
         >
           <span className="relative z-10" style={{ fontFamily: 'var(--font-body)' }}>不认识</span>
           <span className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ background: 'rgba(194, 120, 92, 0.06)' }}
-          />
+            style={{ background: 'rgba(194, 120, 92, 0.06)' }} />
         </button>
         <button
           onClick={() => handleSwipe('right')}
