@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { vocabService, getDailyGoal, setDailyGoal } from './vocab.service'
 import FlashCard from './FlashCard'
