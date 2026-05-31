@@ -54,7 +54,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
-        await loadProfile(session.user.id, session.user.email!)
+        try {
+          await loadProfile(session.user.id, session.user.email!)
+        } catch {
+          setUser({ id: session.user.id, email: session.user.email!, nickname: '' })
+        }
       }
     } catch {
       // 静默处理，未登录
@@ -84,22 +88,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await authService.signUp(email, password, nickname)
     if (error) throw error
 
-    // 邮箱已注册但用户未确认：Supabase 返回 { user, session: null } 无 error
     if (!data.user) {
-      throw new Error('邮箱已注册，请直接登录')
+      throw new Error('该邮箱已注册，请直接登录')
     }
 
     if (data.session) {
-      // 关闭了邮箱验证：session 立即返回
       await supabase.from('profiles').upsert({
         id: data.user.id,
         nickname: nickname || email.split('@')[0],
-      })
+      }).catch(() => {})
       await loadProfile(data.user.id, data.user.email!)
     } else {
-      // 开启了邮箱验证：没有 session → 自动补一次登录
+      // 邮箱验证开启 → 自动补一次登录
       await signIn(email, password)
-      return
     }
   }
 
@@ -108,7 +109,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error
 
     if (data.user) {
-      await loadProfile(data.user.id, data.user.email!)
+      try {
+        await loadProfile(data.user.id, data.user.email!)
+      } catch {
+        // 加载 profile 失败不阻塞登录
+        setUser({ id: data.user.id, email: data.user.email!, nickname: email.split('@')[0] })
+      }
     }
   }
 

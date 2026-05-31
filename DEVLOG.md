@@ -99,6 +99,41 @@
 
 ---
 
+## 2026-05-31（深夜） — 中国网络适配 + 双平台部署
+
+### 问题诊断
+- **真凶：** `supabase.co` 域名在中国被 DNS 污染，API 请求永久挂起，导致页面无限 loading 或白屏
+- 一直以为 Netlify/Vercel 被墙，实际是 Supabase 连不上
+
+### 解决方案
+- **API 代理：** `netlify/functions/api.ts` — Netlify Serverless Function 反向代理
+  - 浏览器 → `we-app-181.netlify.app/api/*` → Netlify Function（美国服务器）→ `supabase.co`（国际直连）
+  - 对浏览器透明，无需 VPN
+- **超时保护：** Supabase 客户端加 12s AbortController 超时 + 30s 硬兜底
+  - 防止网络不通时页面无限卡死
+- **HashRouter：** BrowserRouter → HashRouter，兼容所有静态主机
+- **双平台部署：**
+
+| 平台 | URL | DNS 情况 |
+|------|-----|----------|
+| Netlify | https://we-app-181.netlify.app | 国内部分可达 |
+| GitHub Pages | https://fjnbvvs26j-blip.github.io/we-app/ | 国内一般可达 |
+| Vercel | https://we-xi-five.vercel.app | 国内需 VPN（备用） |
+
+- **缓存控制：** `public/_headers` — index.html no-cache，assets 永久缓存
+
+### 性能优化
+- **getWeeklyStats：** 7 次串行查询 → 1 次范围查询
+- **getNewWords：** 客户端过滤 → `not.in` 服务器过滤
+- **getDifficultWords/getStats：** 全量扫描 → 加 limit 兜底
+- **Tab 切换刷新：** 切回背单词自动刷新 stats，30s 后去重
+- **页面可见性轮询：** 页面可见时每 30s 后台刷新
+
+### 后续
+- [ ] 注册新账号后可能白屏（需定位修复）
+
+---
+
 ## 关键信息速查
 
 ### 运行项目
@@ -114,8 +149,9 @@ npm run build && npx netlify-cli deploy --dir=dist --prod
 ```
 
 ### 线上地址
-- **主力：** https://we-app-181.netlify.app
-- 备用：https://we-xi-five.vercel.app（需 VPN）
+- **GitHub Pages：** https://fjnbvvs26j-blip.github.io/we-app/ （国内推荐）
+- **Netlify：** https://we-app-181.netlify.app
+- **Vercel：** https://we-xi-five.vercel.app （需 VPN，备用）
 
 ### Supabase 项目
 - **Dashboard：** https://supabase.com/dashboard/project/kcgkrgalxgparkryzbhj

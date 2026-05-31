@@ -82,9 +82,16 @@
 ## 阶段八：部署 + 优化
 
 - [x] 8.1 Git 仓库 + GitHub 推送
-- [x] 8.2 部署到 Vercel（https://we-xi-five.vercel.app）
-- [x] 8.3 部署到 Netlify（https://we-app-181.netlify.app，主力，国内可访问）
-- [x] 8.4 移动端触摸交互优化
-- [x] 8.5 性能优化（即时翻卡 + 并行加载总词库）
-- [ ] 8.6 伴侣关联功能
-- [ ] 8.7 互动出题启用
+- [x] 8.2 部署到 Vercel（需 VPN）
+- [x] 8.3 部署到 Netlify（https://we-app-181.netlify.app）
+- [x] 8.4 部署到 GitHub Pages（https://fjnbvvs26j-blip.github.io/we-app/，国内推荐）
+- [x] 8.5 API 代理（Netlify Function 中转 supabase.co，绕过 DNS 封锁）
+- [x] 8.6 请求超时保护（12s AbortController + 30s 硬兜底）
+- [x] 8.7 HashRouter（兼容所有静态主机）
+- [x] 8.8 慢查询优化（周报 7→1 查询、not.in 过滤、limit 兜底）
+- [x] 8.9 数据实时同步（Tab 切换刷新 + 去重 + 页面可见性轮询）
+- [x] 8.10 缓存控制（_headers：index.html no-cache，assets immutable）
+- [x] 8.11 移动端触摸滑动 + 即时翻卡
+- [ ] 8.12 登录后白屏修复
+- [ ] 8.13 伴侣关联功能
+- [ ] 8.14 互动出题启用
