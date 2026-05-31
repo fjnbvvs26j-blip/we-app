@@ -114,11 +114,7 @@
 - **HashRouter：** BrowserRouter → HashRouter，兼容所有静态主机
 - **双平台部署：**
 
-| 平台 | URL | DNS 情况 |
-|------|-----|----------|
-| Netlify | https://we-app-181.netlify.app | 国内部分可达 |
-| GitHub Pages | https://fjnbvvs26j-blip.github.io/we-app/ | 国内一般可达 |
-| Vercel | https://we-xi-five.vercel.app | 国内需 VPN（备用） |
+| Netlify | https://we-app-181.netlify.app | 主力，API 代理中转 Supabase |
 
 - **缓存控制：** `public/_headers` — index.html no-cache，assets 永久缓存
 
@@ -129,8 +125,17 @@
 - **Tab 切换刷新：** 切回背单词自动刷新 stats，30s 后去重
 - **页面可见性轮询：** 页面可见时每 30s 后台刷新
 
+### Bug 修复 & 体验优化（2026-05-31 凌晨）
+- **白屏修复：** useRef 漏导入 → 加全局 ErrorBoundary
+- **登录即见：** 去掉 loading 阻塞，打开直接显示登录页，session 后台检查
+- **代码分割：** React.lazy → VocabPage 独立 chunk（49KB），首屏仅 371KB
+- **移除无用依赖：** pg、recharts，减少 562 行
+- **每日目标：** 点击弹窗式选择器（+/− 按钮 + 50/100/150/200 快捷预设）
+- **auth 容错：** loadProfile 失败不阻塞登录，signIn/checkSession 加固
+
 ### 后续
-- [ ] 注册新账号后可能白屏（需定位修复）
+- [ ] 伴侣关联功能
+- [ ] 互动出题启用
 
 ---
 
@@ -149,9 +154,7 @@ npm run build && npx netlify-cli deploy --dir=dist --prod
 ```
 
 ### 线上地址
-- **GitHub Pages：** https://fjnbvvs26j-blip.github.io/we-app/ （国内推荐）
-- **Netlify：** https://we-app-181.netlify.app
-- **Vercel：** https://we-xi-five.vercel.app （需 VPN，备用）
+- https://we-app-181.netlify.app
 
 ### Supabase 项目
 - **Dashboard：** https://supabase.com/dashboard/project/kcgkrgalxgparkryzbhj
