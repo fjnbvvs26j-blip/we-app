@@ -422,66 +422,46 @@ export const vocabService = {
     }).filter(Boolean) as WordDetail[]
   },
 
-  /** 获取总词库，按字母顺序排序（全并行加载，2 轮网络等待） */
+  /** 获取总词库，按字母顺序排序（分页串行，绕过 1000 行限制，速度足够） */
   async getAllWordsSorted(userId: string): Promise<WordDetail[]> {
-    // 第 1 轮：获取总数 + 第一页（并行）
     const pageSize = 1000
-    const [countResult, firstPageResult] = await Promise.all([
-      supabase.from('vocab_words').select('*', { count: 'exact', head: true }),
-      supabase.from('vocab_words').select('*').order('word', { ascending: true }).range(0, pageSize - 1),
-    ])
+    let page = 0
+    let allWords: VocabWord[] = []
+    const allProgress: Map<string, any> = new Map()
 
-    const total = countResult.count || 0
-    const firstPage = (firstPageResult.data || []) as VocabWord[]
-    if (firstPage.length === 0) return []
-
-    // 第 2 轮：剩余页 + 进度查询（全部并行）
-    const numPages = Math.ceil(total / pageSize)
-    const allWordIds = firstPage.map(w => w.id)
-    const remainingPromises: Promise<any>[] = []
-
-    for (let i = 1; i < numPages; i++) {
-      const from = i * pageSize
+    // 循环分页取词（每次取 1000 词 + 查对应进度）
+    while (true) {
+      const from = page * pageSize
       const to = from + pageSize - 1
-      remainingPromises.push(
-        supabase.from('vocab_words').select('*').order('word', { ascending: true }).range(from, to)
-      )
-    }
+      const { data: words, error } = await supabase
+        .from('vocab_words')
+        .select('*')
+        .order('word', { ascending: true })
+        .range(from, to)
 
-    // 进度查询也和剩余页并行
-    remainingPromises.push(
-      supabase.from('vocab_progress').select('*').eq('user_id', userId).in('word_id', allWordIds)
-    )
+      if (error || !words || words.length === 0) break
 
-    const remainingResults = await Promise.all(remainingPromises)
-    // 最后一个结果是进度
-    const progressResult = remainingResults.pop()
-    let progressMap = new Map((progressResult?.data || []).map((p: any) => [p.word_id, p]))
+      // 查询这批词的进度
+      const wordIds = words.map(w => w.id)
+      const { data: progress } = await supabase
+        .from('vocab_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .in('word_id', wordIds)
 
-    // 收集所有单词
-    const allWords: VocabWord[] = [...firstPage]
-    for (const result of remainingResults) {
-      const words = (result.data || []) as VocabWord[]
-      if (words.length > 0) {
-        // 新页的单词还没查进度，补查
-        const newIds = words.map(w => w.id)
-        const { data: newProgress } = await supabase
-          .from('vocab_progress')
-          .select('*')
-          .eq('user_id', userId)
-          .in('word_id', newIds)
-        if (newProgress) {
-          for (const p of newProgress) {
-            progressMap.set(p.word_id, p)
-          }
+      if (progress) {
+        for (const p of progress) {
+          allProgress.set(p.word_id, p)
         }
-        allWords.push(...words)
       }
+
+      allWords = allWords.concat(words)
+      if (words.length < pageSize) break
+      page++
     }
 
-    // 组装结果
     return allWords.map(w => {
-      const p = progressMap.get(w.id)
+      const p = allProgress.get(w.id)
       const meta = (p?.metadata as any) || {}
       return {
         ...w,
