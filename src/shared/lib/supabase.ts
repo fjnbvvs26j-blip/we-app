@@ -1,11 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 
-// 生产环境走 Netlify Function 代理（/api → supabase.co），绕过国内 DNS 封锁
+// 生产环境走 Netlify Function 代理，绕过国内 supabase.co DNS 封锁
 // 本地开发直连 Supabase
 const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+const PROXY_URL = 'https://we-app-181.netlify.app/api'
 const supabaseUrl = isLocal
   ? import.meta.env.VITE_SUPABASE_URL
-  : '/api'
+  : PROXY_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 // 自定义 fetch：对所有请求加 12 秒超时，防止网络不通时无限挂起

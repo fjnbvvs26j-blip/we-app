@@ -4,6 +4,20 @@ import type { Handler } from '@netlify/functions'
 const SUPABASE_URL = 'https://kcgkrgalxgparkryzbhj.supabase.co'
 
 export const handler: Handler = async (event) => {
+  // 处理 CORS 预检请求
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers: {
+        'access-control-allow-origin': '*',
+        'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+        'access-control-allow-headers': '*',
+        'access-control-max-age': '86400',
+      },
+      body: '',
+    }
+  }
+
   const path = event.path.replace(/^\/api/, '')
   const url = `${SUPABASE_URL}${path}${event.rawQuery ? '?' + event.rawQuery : ''}`
 
