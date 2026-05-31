@@ -4,7 +4,25 @@ import AuthPage from '@/features/auth/AuthPage'
 import VocabPage from '@/features/vocab/VocabPage'
 
 function AppRoutes() {
-  const { session } = useAuth()
+  const { session, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-cream)' }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 animate-spin"
+            style={{
+              borderColor: 'var(--color-warm-border)',
+              borderTopColor: 'var(--color-terracotta)',
+            }}
+          />
+          <span className="font-ui text-xs" style={{ color: 'var(--color-ink-muted)' }}>
+            加载中…
+          </span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <Routes>

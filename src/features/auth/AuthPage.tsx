@@ -8,15 +8,20 @@ export default function AuthPage() {
   const [password, setPassword] = useState('')
   const [nickname, setNickname] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    setSuccess('')
     setLoading(true)
     try {
       if (mode === 'login') await signIn(email, password)
-      else await signUp(email, password, nickname)
+      else {
+        await signUp(email, password, nickname)
+        setSuccess('注册成功！如未自动登录，请检查邮箱验证链接。')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '出错了')
     } finally {
@@ -91,6 +96,11 @@ export default function AuthPage() {
             {error && (
               <p className="font-ui text-xs text-center animate-fade-in" style={{ color: '#C2785C' }}>
                 {error}
+              </p>
+            )}
+            {success && (
+              <p className="font-ui text-xs text-center animate-fade-in" style={{ color: 'var(--color-sage)' }}>
+                {success}
               </p>
             )}
 
