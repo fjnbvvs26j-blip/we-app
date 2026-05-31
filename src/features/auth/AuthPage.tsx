@@ -17,13 +17,18 @@ export default function AuthPage() {
     setSuccess('')
     setLoading(true)
     try {
-      if (mode === 'login') await signIn(email, password)
-      else {
+      if (mode === 'login') {
+        setSuccess('登录中...')
+        await signIn(email, password)
+      } else {
+        setSuccess('注册中...')
         await signUp(email, password, nickname)
-        setSuccess('注册成功！如未自动登录，请检查邮箱验证链接。')
+        setSuccess('注册成功！')
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '出错了')
+    } catch (err: any) {
+      const msg = err?.message || err?.msg || '出错了'
+      setError(msg)
+      setSuccess('')
     } finally {
       setLoading(false)
     }
