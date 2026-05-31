@@ -1,0 +1,18 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+
+# API 代理：将 /api/* 请求转发到 Netlify Function，再中转至 Supabase
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# SPA 回退
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
