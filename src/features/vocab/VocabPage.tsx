@@ -357,7 +357,7 @@ export default function VocabPage() {
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <button
-                      onClick={() => setDaily(d => ({ ...d, goal: Math.max(1, d.goal - 5) }))}
+                      onClick={() => setDaily(d => ({ ...d, goal: Math.max(1, d.goal - 10) }))}
                       className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg active:scale-90 transition-all"
                       style={{ backgroundColor: 'var(--color-paper)', color: 'var(--color-ink-soft)' }}
                     >−</button>
@@ -365,13 +365,13 @@ export default function VocabPage() {
                       {daily.goal}
                     </span>
                     <button
-                      onClick={() => setDaily(d => ({ ...d, goal: Math.min(200, d.goal + 5) }))}
+                      onClick={() => setDaily(d => ({ ...d, goal: Math.min(200, d.goal + 10) }))}
                       className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg active:scale-90 transition-all"
                       style={{ backgroundColor: 'var(--color-paper)', color: 'var(--color-ink-soft)' }}
                     >+</button>
                   </div>
                   <div className="flex gap-1.5">
-                    {[10, 20, 30, 50].map(n => (
+                    {[50, 100, 150, 200].map(n => (
                       <button
                         key={n}
                         onClick={() => { setDaily(d => ({ ...d, goal: n })); setDailyGoal(n); setEditingGoal(false); loadDailyStats() }}
