@@ -1,7 +1,7 @@
 # 待完成计划
 
 > 创建时间: 2026-05-30
-> 最后更新: 2026-05-31
+> 最后更新: 2026-06-01
 > 状态说明: [ ] 未开始 / [~] 进行中 / [x] 已完成
 
 ---
@@ -72,6 +72,19 @@
 - [x] 5.8 实现 BottomNav 底部导航（首页/单词）
 - [x] 5.9 路由改造：/ → HomePage，/vocab → VocabPage，LayoutWithNav
 - [x] 5.10 精简 VocabPage 头部（退出按钮移到首页）
+- [x] 5.11 全局 UI 美化（frontend-design 方法论：动画/层次/氛围/仪式感）
+- [x] 5.12 单方绑定伴侣（link_partners SECURITY DEFINER 函数 + RPC 调用）
+- [x] 5.13 伴侣关联 UI 完善（PartnerBanner 邀请码分享 + PartnerLink 单向提示）
+- [x] 5.14 单词高频词优先推送（每轮 ≥50% 真题高频词）
+- [x] 5.15 周报丰富化（遗忘重置卡片、词频覆盖条形图、易错 TOP 20）
+- [x] 5.16 桌面端键盘快捷键（← → Space）
+- [x] 5.17 易错词显示 20 个（原 30）
+- [x] 5.18 自动刷新修复（Tab 切换 force 跳过去重 + 后台轮询同时更新 daily）
+- [x] 5.19 统计弹窗"已掌握"规则说明
+- [x] 5.20 超时 12s→20s + 友好超时提示
+- [x] 5.21 loadWords 改为 review+new 并行获取，stats 非阻塞
+- [x] 5.22 loadWeeklyStats Promise.all→Promise.allSettled，单查询失败不影响整体
+- [x] 5.23 loadDifficultWords 去 diffloaded 锁，换用 dedup 去重 + 可重试
 
 ## 阶段六：恋爱-日常互动
 
@@ -103,5 +116,5 @@
 - [x] 8.13 登录体验优化（去掉 loading 阻塞 + auth 容错）
 - [x] 8.14 代码分割（React.lazy VocabPage）
 - [x] 8.15 每日目标弹窗选择器（50/100/150/200）
-- [ ] 8.16 伴侣关联功能
+- [x] 8.16 伴侣关联功能（邀请码 + 单方绑定 + RLS 伴侣可见）
 - [ ] 8.17 互动出题启用

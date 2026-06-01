@@ -182,10 +182,46 @@
 | `src/features/home/components/QuickStats.tsx` | |
 | `src/features/home/components/PartnerLink.tsx` | |
 | `src/features/home/components/PartnerBanner.tsx` | |
-| `src/shared/components/BottomNav.tsx` | |
+| `src/shared/components/BottomNav.tsx` | `src/features/vocab/FlashCard.tsx` |
+| | `src/features/vocab/vocab.service.ts` |
+| | `src/features/vocab/vocab.types.ts` |
+| | `src/shared/lib/supabase.ts` |
+| | `src/index.css` |
+| | `src/features/auth/AuthPage.tsx` |
 
 ---
 
+## 2026-06-01（续） — UI 全局美化 + 伴侣绑定完善 + Bug 修复
+
+### UI 美化（frontend-design 方法论驱动）
+- 按 SKILL.md 方法论执行，设计方向：温暖亲密、触感真实
+- 新增动画：`numberPop`（弹跳）、`heartbeat`（心跳）、`card-lift`（悬停浮动）
+- **AuthPage：** 暖光光晕 + 装饰点线 + 卡片双层阴影 + 按钮三阶渐变
+- **PartnerLink：** 心跳动画 + 虚线框 + 绿色提示
+- **PartnerBanner：** 左侧色条 + 伴侣标签 pill + 邀请码分享行
+- **CountdownCard：** 4.5rem 超大数字 + numberPop 弹跳 + 光晕
+- **StatusBar：** 活跃态上浮 + 阴影 + 顶部指示点
+- **BottomNav：** emoji → SVG 图标 + 活跃态背景色块 + 毛玻璃增强
+
+### 伴侣关联完善
+- **单方绑定：** `link_partners` SECURITY DEFINER 函数 + `supabase.rpc()`
+  - 一方输入码 → 双方 partner_id 同时更新
+  - TEXT → ::uuid 转换修复 + RPC 不存在降级兜底
+- **PartnerBanner：** 已关联用户也能复制分享邀请码
+- **错误提示：** 显示 Supabase 具体错误信息
+
+### Bug 修复
+- **周报/易错不显示：** Promise.all → Promise.allSettled
+- **易错无法重试：** 去 difficultLoaded 锁，换 dedup + 刷新清除缓存
+- **背单词加载失败：** review + new 并行，stats 非阻塞
+- **自动刷新失效：** Tab 切换 force 绕过 dedup + 后台同时刷新 stats + daily
+- **超时：** 12s → 20s + 友好中文超时提示
+- **SQL 兼容：** column::text = auth.uid()::text 双向 cast
+
+### 单词增强
+- 高频词优先推送（≥50%）、键盘快捷键（←→Space）、周报三卡片、易错 20 个、已掌握规则说明
+
+---
 
 ## 关键信息速查
 
@@ -209,7 +245,9 @@ npm run build && npx netlify-cli deploy --dir=dist --prod
 - **SQL Editor：** 用于执行迁移和查询
 
 ### 下一步
-- 添加伴侣关联功能
-- 启用互动出题
-- 考研数学模块
-- 恋爱互动模块
+- [x] 伴侣关联功能
+- [ ] 互动出题启用
+- [ ] 每日话题
+- [ ] 时光便签
+- [ ] 见面规划
+- [ ] 考研数学模块
