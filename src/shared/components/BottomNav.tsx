@@ -12,6 +12,21 @@ const TABS = [
     ),
   },
   {
+    path: '/calendar',
+    label: '日历',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+        <circle cx="12" cy="15" r="1" fill="currentColor" />
+        <circle cx="16" cy="15" r="1" fill="currentColor" />
+        <circle cx="8" cy="15" r="1" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
     path: '/vocab',
     label: '单词',
     icon: (
@@ -25,7 +40,9 @@ const TABS = [
 
 export default function BottomNav() {
   const location = useLocation()
-  const currentPath = location.pathname === '/' ? '/' : '/vocab'
+  const currentPath = location.pathname.startsWith('/calendar') ? '/calendar'
+    : location.pathname.startsWith('/vocab') ? '/vocab'
+    : '/'
 
   return (
     <nav

@@ -88,7 +88,7 @@
 
 ## 阶段六：恋爱-日常互动
 
-- [ ] 6.1 设计 topics.types.ts、wall.types.ts
+- [x] 6.1 设计 topics.types.ts、wall.types.ts
 - [ ] 6.2 实现每日话题
 - [ ] 6.3 实现时光便签
 - [ ] 6.4 实现 TopicsPage + WallPage
@@ -98,6 +98,15 @@
 - [ ] 7.1 设计 meet.types.ts
 - [ ] 7.2 实现四步向导
 - [ ] 7.3 实现 MeetPage
+
+## 阶段八：恋爱-日历 + AI 规划（2026-06-01 新增）
+
+- [x] 8.1 数据库迁移：calendar_entries 表 + meet_plans 扩展 + RLS
+- [x] 8.2 meet 模块：类型 + 服务层（CRUD 日历条目/见面规划/活动）
+- [x] 8.3 日历组件：CalendarGrid 双栏月历 + CalendarDay 格子 + DayEditor 编辑弹窗
+- [x] 8.4 见面规划组件：MeetingDetail 概览 + MeetingEditor 编辑器 + TimelineView 时间线
+- [x] 8.5 AI 建议引擎：纯规则驱动（时间分配/约会点子/出行/预算/待办清单）零费用
+- [x] 8.6 路由整合 + 底部导航添加"日历"tab + 首页倒计时入口
 
 ## 阶段八：部署 + 优化
 

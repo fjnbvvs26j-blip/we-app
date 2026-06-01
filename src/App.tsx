@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/shared/hooks/useAuth'
 import AuthPage from '@/features/auth/AuthPage'
 import HomePage from '@/features/home/HomePage'
+import CalendarPage from '@/features/meet/CalendarPage'
+import MeetingPlanPage from '@/features/meet/MeetingPlanPage'
 import BottomNav from '@/shared/components/BottomNav'
 
 const VocabPage = lazy(() => import('@/features/vocab/VocabPage'))
@@ -39,6 +41,8 @@ function AppRoutes() {
         session ? <LayoutWithNav /> : <Navigate to="/auth" />
       }>
         <Route index element={<HomePage />} />
+        <Route path="calendar" element={<CalendarPage />} />
+        <Route path="meet/:date" element={<MeetingPlanPage />} />
         <Route path="vocab" element={
           <Suspense fallback={<PageFallback />}>
             <VocabPage />

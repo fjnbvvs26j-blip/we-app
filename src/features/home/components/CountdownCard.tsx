@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { homeService } from '@/features/home/home.service'
 import type { CountdownData } from '@/features/home/home.types'
 
 export default function CountdownCard() {
   const [data, setData] = useState<CountdownData>(null)
   const [loaded, setLoaded] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     homeService.getNextMeeting().then(d => { setData(d); setLoaded(true) }).catch(() => setLoaded(true))
@@ -27,9 +29,19 @@ export default function CountdownCard() {
         <p className="font-display text-sm font-semibold mb-1" style={{ color: 'var(--color-ink)' }}>
           还没有计划见面
         </p>
-        <p className="font-ui text-[11px]" style={{ color: 'var(--color-ink-muted)' }}>
+        <p className="font-ui text-[11px] mb-3" style={{ color: 'var(--color-ink-muted)' }}>
           <span className="opacity-50">确定日期后会显示倒计时</span>
         </p>
+        <button
+          onClick={() => navigate('/calendar')}
+          className="font-ui text-[10px] px-3 py-1.5 rounded-full transition-all hover:opacity-70"
+          style={{
+            color: 'var(--color-ink-muted)',
+            backgroundColor: 'rgba(232, 221, 208, 0.3)',
+          }}
+        >
+          📅 查看日历
+        </button>
       </div>
     )
   }
@@ -77,6 +89,18 @@ export default function CountdownCard() {
           </span>
         )}
       </div>
+
+      {/* 查看日历链接 */}
+      <button
+        onClick={() => navigate('/calendar')}
+        className="w-full mt-3 py-2 rounded-xl font-ui text-[10px] font-medium transition-all hover:opacity-70"
+        style={{
+          color: 'var(--color-ink-muted)',
+          backgroundColor: 'rgba(232, 221, 208, 0.3)',
+        }}
+      >
+        📅 查看日历
+      </button>
     </div>
   )
 }

@@ -258,6 +258,64 @@
 
 ---
 
+## 2026-06-01 — 日历双栏 + 见面规划完整版 + AI 建议引擎
+
+### 新增功能
+1. **数据库迁移** `20260601000002_add_calendar.sql`
+   - 新建 `calendar_entries` 表（user_id, date, content, is_available, is_meeting_day）
+   - `meet_plans` 扩展：destination, location, hotel, transport, budget 字段
+   - `calendar_entries` RLS（自己+伴侣可读，自己可写）
+   - 补充 `meet_plans`/`meet_tasks` INSERT/UPDATE/DELETE RLS
+
+2. **日历模块** `src/features/meet/`
+   - `CalendarGrid`：双栏月历，左我右伴侣，月份切换，颜色编码（陶土橙=我/玫瑰暖=伴侣/鼠尾草绿=有空）
+   - `DayEditor`：底部弹窗编辑每日内容/有空/星标，伴侣内容只读展示
+   - 见面日自动星标 ★，点击可进入见面规划
+
+3. **见面规划**
+   - `MeetingDetail`：时间/出行/地点&住宿/行程 四卡片概览
+   - `MeetingEditor`：完整表单（时间、交通、酒店、预算、活动列表）
+   - `TimelineView`：活动时间线（按 sort_order 排列，悬停可删）
+   - `MeetingPlanPage`：整合详情+编辑+建议，日期路由 `/meet/:date`
+
+4. **AI 建议引擎** `meet.suggestions.ts`（纯规则，零费用）
+   - 时间分配建议（基于总时长推荐学习/约会比例）
+   - 约会点子（8 套模板库 + 城市/时长/学习需求匹配）
+   - 出行建议（城市距离表 + 交通方式推荐）
+   - 待办清单（基于时长+住宿自动生成）
+   - 预算估算（粗略区间）
+   - 双方有空日分析（日历数据联动）
+
+5. **导航改造**
+   - BottomNav 从 2 个 tab → 3 个（首页/日历/单词）
+   - CountdownCard 添加"查看日历"按钮（有数据/无数据均显示）
+   - 新路由：`/calendar`、`/meet/:date`
+
+### 技术决策
+- **纯规则 AI**：不调任何外部 API，全部 JavaScript 本地生成，零延迟零费用。接口设计为纯函数，未来可无缝替换为 LLM
+- **双向日历**：通过 `partner_id` 加载对方条目，无伴侣时仅显示自己的单栏
+- **meet_plans.id 是 TEXT 类型**（历史迁移导致），calendar_entries 同样用 TEXT user_id 保持兼容
+- **构建命令**：`Supabase Management API /database/query` 端点用于执行迁移（直连 PostgreSQL 被网络限制）
+
+### 文件清单
+| 新建 | 修改 |
+|------|------|
+| `supabase/migrations/20260601000002_add_calendar.sql` | `src/App.tsx` |
+| `src/features/meet/meet.types.ts` | `src/shared/components/BottomNav.tsx` |
+| `src/features/meet/meet.service.ts` | `src/features/home/components/CountdownCard.tsx` |
+| `src/features/meet/meet.suggestions.ts` | `TASKS.md` / `DEVLOG.md` |
+| `src/features/meet/CalendarPage.tsx` | |
+| `src/features/meet/MeetingPlanPage.tsx` | |
+| `src/features/meet/components/CalendarGrid.tsx` | |
+| `src/features/meet/components/CalendarDay.tsx` | |
+| `src/features/meet/components/DayEditor.tsx` | |
+| `src/features/meet/components/MeetingDetail.tsx` | |
+| `src/features/meet/components/MeetingEditor.tsx` | |
+| `src/features/meet/components/TimelineView.tsx` | |
+| `src/features/meet/components/SuggestionPanel.tsx` | |
+
+---
+
 ## 关键信息速查
 
 ### 运行项目
@@ -290,6 +348,59 @@ npm run build && npx gh-pages -d dist
 ### Supabase 项目
 - **Dashboard：** https://supabase.com/dashboard/project/kcgkrgalxgparkryzbhj
 - **SQL Editor：** 用于执行迁移和查询
+
+### 关键操作速查（供未来会话复用，避免重复排查）
+
+#### 执行 SQL 迁移
+```bash
+# 方式一：Management API（推荐，无需直连 PostgreSQL）
+# Token 存储在 macOS 钥匙串中，通过以下命令获取：
+#   security find-generic-password -a "supabase" -w | base64 -d
+TOKEN=$(security find-generic-password -a "supabase" -w | base64 -d)
+SQL=$(cat supabase/migrations/20260601000002_add_calendar.sql)
+curl -X POST "https://api.supabase.com/v1/projects/kcgkrgalxgparkryzbhj/database/query" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg query "$SQL" '{query: $query}')"
+
+# 方式二：supabase db push（需要直连 PostgreSQL，本环境已确认不通）
+supabase db push  # ← ❌ tls error，不可用
+```
+
+#### 数据库已知约束
+| 约束 | 说明 | 首次遇到 |
+|------|------|---------|
+| `profiles.id` 是 TEXT | 历史迁移 `fix_profiles_fk.sql` 将 UUID 改为 TEXT | 2026-06-01 |
+| `meet_plans.id` 是 TEXT | 同一迁移导致 | 2026-06-01 |
+| 直连 PostgreSQL 不通 | 网络限制 TLS 连接 | 2026-06-01 |
+| Supabase CLI 需 `login` | Token 存 macOS 钥匙串 | 2026-06-01 |
+
+#### Schema 查询命令
+```bash
+# 先获取 Token（macOS 钥匙串）
+TOKEN=$(security find-generic-password -a "supabase" -w | base64 -d)
+
+# 查表结构
+curl -s "https://api.supabase.com/v1/projects/kcgkrgalxgparkryzbhj/database/query" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '\''calendar_entries'\'' ORDER BY ordinal_position;"}'
+
+# 查 RLS 策略
+curl -s "..." -d '{"query":"SELECT tablename, policyname, cmd FROM pg_policies WHERE tablename = '\''meet_plans'\'' ORDER BY policyname;"}'
+```
+
+#### 可用的 Management API 命令
+```bash
+# 先获取 Token（macOS 钥匙串）
+TOKEN=$(security find-generic-password -a "supabase" -w | base64 -d)
+
+# 执行任意 SQL
+curl -s "https://api.supabase.com/v1/projects/kcgkrgalxgparkryzbhj/database/query" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"<SQL_HERE>"}'
+# 返回值：201 表示成功，[] 表示无数据行
 
 ### 下一步
 - [x] 伴侣关联功能
