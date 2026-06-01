@@ -53,8 +53,12 @@ export default function PartnerLink() {
       <h3 className="font-display text-base font-semibold mb-1.5" style={{ color: 'var(--color-ink)' }}>
         关联伴侣
       </h3>
-      <p className="font-body text-xs leading-relaxed mb-6 opacity-50" style={{ color: 'var(--color-ink-soft)' }}>
-        关联后，可以看到彼此的状态、互动出题、一起学习
+      <p className="font-body text-xs leading-relaxed mb-4 opacity-50" style={{ color: 'var(--color-ink-soft)' }}>
+        输入 TA 的邀请码，双方自动关联
+      </p>
+      <p className="font-ui text-[10px] px-3 py-1.5 rounded-full inline-block mb-6"
+        style={{ backgroundColor: 'rgba(107, 143, 113, 0.06)', color: 'var(--color-sage)' }}>
+        ✨ 只需一方绑定，双向自动关联
       </p>
 
       {/* 我的邀请码 */}

@@ -141,13 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('不能关联自己的邀请码')
     }
 
-    // 2. 更新自己的 partner_id
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ partner_id: partner.id })
-      .eq('id', currentUser.id)
+    // 2. 调用 SECURITY DEFINER 函数，单方输入即双向绑定
+    const { error: rpcError } = await supabase.rpc('link_partners', {
+      linker_id: currentUser.id,
+      target_id: partner.id,
+    })
 
-    if (updateError) throw new Error('关联失败，请重试')
+    if (rpcError) throw new Error('关联失败，请重试')
 
     // 3. 刷新本地状态
     await refreshProfile()

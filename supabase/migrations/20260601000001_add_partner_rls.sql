@@ -57,3 +57,16 @@ CREATE POLICY answers_read_own ON topic_answers
     user_id::text = auth.uid()::text
     OR user_id::text = (SELECT partner_id::text FROM profiles WHERE id::text = auth.uid()::text)
   );
+
+-- ═══ 8. 单方绑定伴侣函数（SECURITY DEFINER 绕过 RLS） ═══
+-- 一方输入邀请码 → 双方 partner_id 同时更新
+CREATE OR REPLACE FUNCTION link_partners(linker_id TEXT, target_id TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE profiles SET partner_id = target_id WHERE id::text = linker_id;
+  UPDATE profiles SET partner_id = linker_id WHERE id::text = target_id;
+END;
+$$;
