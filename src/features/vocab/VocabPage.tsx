@@ -122,44 +122,53 @@ export default function VocabPage() {
     return true
   }
 
-  // 包装带去重的 stats 刷新
-  function refreshStats() {
+  // 包装带去重的 stats 刷新（force 跳过 dedup，用于手动操作）
+  function refreshStats(force = false) {
     if (!user) return
-    if (dedup('stats')) {
+    if (force || dedup('stats')) {
       vocabService.getStats(user.id).then(st => {
         setStats(prev => ({ ...prev, total: st.total, known: st.known, learning: st.learning, due: st.due }))
       }).catch(() => {})
     }
   }
-  function refreshDailyStats() {
-    if (!user || !dedup('daily')) return
-    loadDailyStats()
+  function refreshDailyStats(force = false) {
+    if (!user) return
+    if (force || dedup('daily')) loadDailyStats()
   }
 
   useEffect(() => {
     if (user) { loadWords(); loadDailyStats() }
   }, [user])
 
-  // 页面可见时每 30s 自动刷新 stats
+  // 页面可见时每 30s 自动刷新 stats + daily
   useEffect(() => {
     if (!user) return
-    let timer: ReturnType<typeof setInterval>
-    function onVisibilityChange() {
-      if (document.visibilityState === 'visible') {
+    let timer: ReturnType<typeof setInterval> | null = null
+
+    function startPolling() {
+      stopPolling()
+      refreshStats()
+      refreshDailyStats()
+      timer = setInterval(() => {
         refreshStats()
         refreshDailyStats()
-        timer = setInterval(() => {
-          refreshStats()
-          refreshDailyStats()
-        }, 30000)
-      } else {
-        clearInterval(timer)
-      }
+      }, 30000)
     }
+
+    function stopPolling() {
+      if (timer !== null) { clearInterval(timer); timer = null }
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible') startPolling()
+      else stopPolling()
+    }
+
     document.addEventListener('visibilitychange', onVisibilityChange)
-    timer = setInterval(refreshStats, 30000)
+    startPolling()
+
     return () => {
-      clearInterval(timer)
+      stopPolling()
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [user])
@@ -450,7 +459,7 @@ export default function VocabPage() {
                 key={t.key}
                 onClick={() => {
                   setMode(t.key)
-                  if (t.key === 'flashcard') { refreshStats(); refreshDailyStats() }
+                  if (t.key === 'flashcard') { refreshStats(true); refreshDailyStats(true) }
                   if (t.key === 'difficult') loadDifficultWords()
                   if (t.key === 'weekly') loadWeeklyStats()
                 }}
