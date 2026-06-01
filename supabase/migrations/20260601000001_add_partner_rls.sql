@@ -66,7 +66,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  UPDATE profiles SET partner_id = target_id WHERE id::text = linker_id;
-  UPDATE profiles SET partner_id = linker_id WHERE id::text = target_id;
+  UPDATE profiles SET partner_id = target_id::uuid WHERE id::text = linker_id;
+  UPDATE profiles SET partner_id = linker_id::uuid WHERE id::text = target_id;
 END;
 $$;
