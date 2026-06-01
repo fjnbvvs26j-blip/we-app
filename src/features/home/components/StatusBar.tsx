@@ -42,22 +42,30 @@ export default function StatusBar() {
   return (
     <div className="card-warm !rounded-2xl p-5 mb-3 animate-fade-up">
       {/* 我的状态 */}
-      <p className="font-ui text-[10px] mb-3 tracking-wide" style={{ color: 'var(--color-ink-muted)' }}>
+      <p className="font-ui text-[10px] mb-3 tracking-[0.1em] uppercase" style={{ color: 'var(--color-ink-muted)' }}>
         我的状态
       </p>
-      <div className="flex justify-between gap-1">
+      <div className="flex justify-between gap-1.5">
         {STATUS_OPTIONS.map(s => (
           <button
             key={s.key}
             onClick={() => handleSetStatus(s)}
-            className="flex flex-col items-center gap-1.5 py-2 px-1 rounded-xl transition-all duration-200 active:scale-90 min-w-0"
+            disabled={saving}
+            className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl transition-all duration-200 min-w-0 relative"
             style={{
-              backgroundColor: myStatus === s.key ? 'rgba(184, 101, 43, 0.08)' : 'transparent',
-              border: myStatus === s.key ? '1.5px solid var(--color-terracotta)' : '1.5px solid transparent',
+              backgroundColor: myStatus === s.key ? 'rgba(184, 101, 43, 0.06)' : 'transparent',
+              border: myStatus === s.key ? '1.5px solid rgba(184, 101, 43, 0.25)' : '1.5px solid transparent',
+              transform: myStatus === s.key ? 'translateY(-1px)' : 'none',
+              boxShadow: myStatus === s.key ? '0 2px 12px rgba(184, 101, 43, 0.08)' : 'none',
             }}
           >
-            <span className="text-lg">{s.emoji}</span>
-            <span className="font-ui text-[10px]" style={{
+            {/* 活跃指示点 */}
+            {myStatus === s.key && (
+              <span className="absolute top-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
+                style={{ backgroundColor: 'var(--color-terracotta)' }} />
+            )}
+            <span className="text-lg leading-none">{s.emoji}</span>
+            <span className="font-ui text-[10px] leading-tight" style={{
               color: myStatus === s.key ? 'var(--color-terracotta)' : 'var(--color-ink-muted)',
               fontWeight: myStatus === s.key ? 600 : 400,
             }}>{s.label}</span>
@@ -67,12 +75,13 @@ export default function StatusBar() {
 
       {/* 伴侣状态 */}
       {user?.partner_id && (
-        <div className="mt-4 pt-3 border-t" style={{ borderColor: 'var(--color-warm-border)' }}>
+        <div className="mt-4 pt-3 border-t" style={{ borderColor: 'rgba(232, 221, 208, 0.6)' }}>
           {partnerStatus ? (
-            <div className="flex items-center gap-2">
-              <span className="font-ui text-[11px]" style={{ color: 'var(--color-ink-muted)' }}>
+            <div className="flex items-center justify-center gap-2.5">
+              <span className="font-ui text-[11px] font-medium" style={{ color: 'var(--color-ink-soft)' }}>
                 {partnerStatus.partner_nickname}
               </span>
+              <span className="w-0.5 h-3 rounded-full opacity-20" style={{ backgroundColor: 'var(--color-ink)' }} />
               <span className="text-base">
                 {STATUS_OPTIONS.find(s => s.key === partnerStatus.status)?.emoji || '💭'}
               </span>
@@ -80,13 +89,13 @@ export default function StatusBar() {
                 {STATUS_OPTIONS.find(s => s.key === partnerStatus.status)?.label || partnerStatus.status}
               </span>
               {partnerStatus.updated_at && (
-                <span className="font-ui text-[10px] opacity-30" style={{ color: 'var(--color-ink-muted)' }}>
+                <span className="font-ui text-[10px] opacity-25" style={{ color: 'var(--color-ink-muted)' }}>
                   {timeAgo(partnerStatus.updated_at)}
                 </span>
               )}
             </div>
           ) : (
-            <p className="font-ui text-[10px] opacity-40" style={{ color: 'var(--color-ink-muted)' }}>
+            <p className="font-ui text-[10px] text-center opacity-25" style={{ color: 'var(--color-ink-muted)' }}>
               伴侣还没有设置状态
             </p>
           )}

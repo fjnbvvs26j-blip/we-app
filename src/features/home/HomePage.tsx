@@ -34,7 +34,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div className="px-5">
+      <div className="px-5 stagger">
         {/* 伴侣关联 */}
         {user?.partner_id ? <PartnerBanner /> : <PartnerLink />}
 
@@ -47,10 +47,14 @@ export default function HomePage() {
         {/* 学习概览 */}
         <QuickStats />
 
-        {/* 装饰说明 */}
-        <p className="text-center font-ui text-[10px] mt-6 opacity-30" style={{ color: 'var(--color-ink-muted)' }}>
-          {user?.partner_id ? '💕 已关联伴侣，互相可以看见对方的状态' : '邀请伴侣关联，解锁完整互动'}
-        </p>
+        {/* 预留空间：未来每日话题、时光便签入口 */}
+        <div className="mt-6 mb-2">
+          <div className="flex items-center gap-3 px-2">
+            <span className="deco-dot opacity-25" />
+            <span className="deco-dot opacity-25" />
+            <span className="deco-dot opacity-25" />
+          </div>
+        </div>
       </div>
     </div>
   )

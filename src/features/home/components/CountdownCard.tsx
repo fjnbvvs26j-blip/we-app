@@ -35,25 +35,48 @@ export default function CountdownCard() {
   }
 
   return (
-    <div className="card-warm !rounded-2xl p-6 mb-3 text-center animate-fade-up">
-      <p className="font-ui text-[10px] mb-2 tracking-wide" style={{ color: 'var(--color-ink-muted)' }}>
+    <div className="card-warm !rounded-2xl p-6 mb-3 text-center animate-fade-up relative overflow-hidden">
+      {/* 装饰光晕 */}
+      <div className="absolute -top-16 -right-16 w-32 h-32 rounded-full blur-2xl opacity-8 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, var(--color-terracotta-light), transparent)' }} />
+
+      <p className="font-ui text-[10px] mb-3 tracking-[0.15em] uppercase" style={{ color: 'var(--color-ink-muted)' }}>
         距离下次见面
       </p>
-      <div className="flex items-baseline justify-center gap-1.5 mb-2">
-        <span className="font-display text-[3.5rem] font-bold leading-none" style={{ color: 'var(--color-terracotta)' }}>
+
+      <div className="relative inline-flex items-baseline justify-center gap-1.5 mb-3">
+        <span
+          key={data.daysUntil}
+          className="num-display text-[4.5rem] leading-none animate-number-pop"
+          style={{ color: 'var(--color-terracotta)' }}
+        >
           {data.daysUntil}
         </span>
         <span className="font-display text-xl font-semibold" style={{ color: 'var(--color-ink-muted)' }}>天</span>
       </div>
-      <p className="font-body text-xs" style={{ color: 'var(--color-ink-soft)' }}>
-        {formatDate(data.meetDate)}
-      </p>
-      {data.fromCity && (
-        <span className="inline-block mt-2 font-ui text-[10px] px-2.5 py-1 rounded-full"
-          style={{ backgroundColor: 'rgba(184, 101, 43, 0.06)', color: 'var(--color-terracotta)' }}>
-          🚄 {data.fromCity}
-        </span>
-      )}
+
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <span className="deco-dot opacity-40" />
+        <p className="font-body text-xs" style={{ color: 'var(--color-ink-soft)' }}>
+          {formatDate(data.meetDate)}
+        </p>
+        <span className="deco-dot opacity-40" />
+      </div>
+
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        {data.fromCity && (
+          <span className="inline-flex items-center gap-1 font-ui text-[10px] px-2.5 py-1 rounded-full"
+            style={{ backgroundColor: 'rgba(184, 101, 43, 0.06)', color: 'var(--color-terracotta)' }}>
+            🚄 {data.fromCity}
+          </span>
+        )}
+        {data.meetStatus === 'confirmed' && (
+          <span className="inline-flex items-center gap-1 font-ui text-[10px] px-2.5 py-1 rounded-full"
+            style={{ backgroundColor: 'rgba(107, 143, 113, 0.08)', color: 'var(--color-sage)' }}>
+            ✓ 已确认
+          </span>
+        )}
+      </div>
     </div>
   )
 }

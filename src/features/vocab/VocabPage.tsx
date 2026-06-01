@@ -457,7 +457,8 @@ export default function VocabPage() {
                     ? {
                         color: 'var(--color-ink)',
                         backgroundColor: 'white',
-                        boxShadow: '0 1px 3px rgba(44,24,16,0.06)',
+                        boxShadow: '0 1px 2px rgba(44,24,16,0.06), 0 2px 8px rgba(44,24,16,0.04)',
+                        fontWeight: 600,
                       }
                     : { color: 'var(--color-ink-muted)' }
                 }
@@ -495,26 +496,29 @@ export default function VocabPage() {
             ) : roundComplete ? (
               /* 本轮完成 */
               <div className="text-center py-12 animate-scale-in">
-                <div className="card-warm !rounded-2xl px-8 py-10 max-w-sm mx-auto">
-                  <span className="text-5xl block mb-4">🎉</span>
-                  <p className="font-display text-xl font-semibold" style={{ color: 'var(--color-ink)' }}>
+                <div className="card-warm !rounded-2xl px-8 py-10 max-w-sm mx-auto relative overflow-hidden">
+                  {/* 庆祝装饰 */}
+                  <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-2xl opacity-10"
+                    style={{ background: 'radial-gradient(circle, var(--color-terracotta-light), transparent)' }} />
+                  <div className="absolute -bottom-8 -left-8 w-20 h-20 rounded-full blur-2xl opacity-8"
+                    style={{ background: 'radial-gradient(circle, var(--color-sage), transparent)' }} />
+
+                  <span className="text-6xl block mb-4 relative">🎉</span>
+                  <p className="font-display text-2xl font-bold" style={{ color: 'var(--color-ink)' }}>
                     本轮完成！
                   </p>
                   <p className="font-body text-sm mt-2" style={{ color: 'var(--color-ink-muted)' }}>
-                    已学 <strong className="font-display" style={{ color: 'var(--color-ink-soft)' }}>{words.length}</strong> 个单词 · 掌握{' '}
-                    <strong className="font-display" style={{ color: 'var(--color-sage)' }}>{stats.known}</strong> 个
+                    已学{' '}
+                    <strong className="font-display text-base" style={{ color: 'var(--color-ink-soft)' }}>{words.length}</strong>
+                    {' '}个单词 · 掌握{' '}
+                    <strong className="font-display text-base" style={{ color: 'var(--color-sage)' }}>{stats.known}</strong>
+                    {' '}个
                   </p>
                   <div className="flex flex-col gap-2 mt-7">
-                    <button
-                      onClick={loadWords}
-                      className="btn-primary"
-                    >
+                    <button onClick={loadWords} className="btn-primary !rounded-xl py-3">
                       继续背单词
                     </button>
-                    <button
-                      onClick={handleChangeRoundSize}
-                      className="btn-secondary text-xs"
-                    >
+                    <button onClick={handleChangeRoundSize} className="btn-secondary text-xs">
                       每轮 {roundSize} 词
                     </button>
                   </div>

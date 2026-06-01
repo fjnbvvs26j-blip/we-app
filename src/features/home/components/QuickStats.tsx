@@ -50,17 +50,17 @@ export default function QuickStats() {
 
   return (
     <div className="card-warm !rounded-2xl p-5 mb-3 animate-fade-up">
-      <p className="font-ui text-[10px] mb-3 tracking-wide" style={{ color: 'var(--color-ink-muted)' }}>学习概览</p>
+      <p className="font-ui text-[10px] mb-3 tracking-[0.1em] uppercase" style={{ color: 'var(--color-ink-muted)' }}>学习概览</p>
       <div className="grid grid-cols-3 gap-2">
         {cards.map(c => (
           <button
             key={c.label}
             onClick={() => navigate('/vocab')}
-            className="flex flex-col items-center py-2.5 px-1 rounded-xl transition-all hover:-translate-y-0.5 duration-200 active:scale-95"
-            style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}
+            className="flex flex-col items-center py-3 px-1 rounded-xl transition-all duration-200 active:scale-95 card-lift"
+            style={{ backgroundColor: 'rgba(255,255,255,0.6)', border: '1px solid rgba(232,221,208,0.3)' }}
           >
-            <span className="font-display text-lg font-semibold" style={{ color: c.color }}>{c.value}</span>
-            <span className="font-ui text-[10px] mt-0.5" style={{ color: 'var(--color-ink-muted)' }}>{c.label}</span>
+            <span className="num-display text-xl font-bold" style={{ color: c.color }}>{c.value}</span>
+            <span className="font-ui text-[10px] mt-1 opacity-60" style={{ color: 'var(--color-ink-muted)' }}>{c.label}</span>
           </button>
         ))}
       </div>

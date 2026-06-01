@@ -25,27 +25,36 @@ export default function PartnerBanner() {
   }
 
   return (
-    <div className="card-warm !rounded-2xl p-4 mb-4 flex items-center gap-4 animate-fade-up">
-      {/* 头像占位 */}
-      <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0"
-        style={{ backgroundColor: 'rgba(184, 101, 43, 0.08)' }}>
-        🐻
+    <div className="card-warm !rounded-2xl p-4 mb-4 flex items-center gap-4 animate-fade-up relative overflow-hidden card-lift">
+      {/* 左侧色条 */}
+      <div className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full opacity-25"
+        style={{ backgroundColor: 'var(--color-terracotta)' }} />
+
+      {/* 头像 */}
+      <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0 relative"
+        style={{ backgroundColor: 'rgba(184, 101, 43, 0.06)', border: '1.5px solid rgba(184, 101, 43, 0.12)' }}>
+        <span className="animate-heartbeat" style={{ fontSize: '1.25rem' }}>💕</span>
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="font-display text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>
-          {partner.nickname}
-        </p>
-        {partner.target_school && (
-          <p className="font-ui text-[11px]" style={{ color: 'var(--color-ink-muted)' }}>
-            🎯 {partner.target_school}
+        <div className="flex items-center gap-2">
+          <p className="font-display text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>
+            {partner.nickname}
+          </p>
+          <span className="font-ui text-[9px] px-1.5 py-0.5 rounded-full"
+            style={{ backgroundColor: 'rgba(184, 101, 43, 0.06)', color: 'var(--color-terracotta)', opacity: 0.6 }}>
+            伴侣
+          </span>
+        </div>
+        {partner.target_school ? (
+          <p className="font-ui text-[11px] mt-0.5" style={{ color: 'var(--color-ink-muted)' }}>
+            🎯 目标：{partner.target_school}
+          </p>
+        ) : (
+          <p className="font-ui text-[11px] mt-0.5 opacity-30" style={{ color: 'var(--color-ink-muted)' }}>
+            还没有设置目标院校
           </p>
         )}
-      </div>
-
-      {/* 装饰 */}
-      <div className="shrink-0">
-        <span className="text-lg opacity-30">💕</span>
       </div>
     </div>
   )
