@@ -2,7 +2,14 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import { supabase } from '@/shared/lib/supabase'
 import { authService } from '@/features/auth/auth.service'
 
-type User = { id: string; email: string; nickname: string }
+type User = {
+  id: string
+  email: string
+  nickname: string
+  partner_id: string | null
+  target_school: string | null
+  invite_code: string | null
+}
 
 type AuthState = {
   user: User | null
@@ -12,6 +19,8 @@ type AuthState = {
   signUp: (email: string, password: string, nickname: string) => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
+  linkPartner: (inviteCode: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -53,9 +62,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!profile) {
       const nickname = email.split('@')[0]
       await supabase.from('profiles').upsert({ id: uid, nickname })
-      setUser({ id: uid, email, nickname })
+      setUser({ id: uid, email, nickname, partner_id: null, target_school: null, invite_code: null })
     } else {
-      setUser({ id: uid, email, nickname: profile.nickname })
+      setUser({
+        id: uid,
+        email,
+        nickname: profile.nickname,
+        partner_id: profile.partner_id ?? null,
+        target_school: profile.target_school ?? null,
+        invite_code: profile.invite_code ?? null,
+      })
     }
   }
 
@@ -98,6 +114,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  async function refreshProfile() {
+    const { data } = await supabase.auth.getSession()
+    const sessionUser = data.session?.user
+    if (sessionUser) {
+      await loadProfile(sessionUser.id, sessionUser.email!)
+    }
+  }
+
+  async function linkPartner(inviteCode: string) {
+    // 1. 按邀请码查找伴侣
+    const { data: partner, error } = await supabase
+      .from('profiles')
+      .select('id, nickname')
+      .eq('invite_code', inviteCode.toLowerCase())
+      .single()
+
+    if (error || !partner) {
+      throw new Error('未找到该邀请码，请确认后重试')
+    }
+
+    const currentUser = user
+    if (!currentUser) throw new Error('请先登录')
+
+    if (partner.id === currentUser.id) {
+      throw new Error('不能关联自己的邀请码')
+    }
+
+    // 2. 更新自己的 partner_id
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ partner_id: partner.id })
+      .eq('id', currentUser.id)
+
+    if (updateError) throw new Error('关联失败，请重试')
+
+    // 3. 刷新本地状态
+    await refreshProfile()
+  }
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -107,6 +162,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signIn,
       signOut,
+      refreshProfile,
+      linkPartner,
     }}>
       {children}
     </AuthContext.Provider>

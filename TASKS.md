@@ -61,10 +61,17 @@
 
 ## 阶段五：恋爱-首页仪表盘
 
-- [ ] 5.1 设计 home.types.ts
-- [ ] 5.2 实现 StatusBar 组件
-- [ ] 5.3 实现 Countdown 组件
-- [ ] 5.4 实现 HomePage 页面
+- [x] 5.0 DB 迁移：invite_code + 伴侣可见 RLS + statuses UPDATE 策略（009_add_partner_rls.sql）
+- [x] 5.1 useAuth 扩展：partner_id / target_school / invite_code + linkPartner + refreshProfile
+- [x] 5.2 创建 home.types.ts + home.service.ts（状态/倒计时/伴侣信息/邀请码查找）
+- [x] 5.3 实现 StatusBar 组件（5 种状态选择器 + 伴侣状态展示）
+- [x] 5.4 实现 CountdownCard 组件（距下次见面倒计时）
+- [x] 5.5 实现 QuickStats 组件（学习概览，链接到单词页）
+- [x] 5.6 实现 PartnerLink 组件（邀请码关联 UI）
+- [x] 5.7 实现 PartnerBanner 组件（已关联伴侣信息横幅）
+- [x] 5.8 实现 BottomNav 底部导航（首页/单词）
+- [x] 5.9 路由改造：/ → HomePage，/vocab → VocabPage，LayoutWithNav
+- [x] 5.10 精简 VocabPage 头部（退出按钮移到首页）
 
 ## 阶段六：恋爱-日常互动
 

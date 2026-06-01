@@ -80,7 +80,7 @@ function Divider() {
 // 主组件
 // ══════════════════════════════════════════
 export default function VocabPage() {
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const [mode, setMode] = useState<LearningMode>('flashcard')
   const [words, setWords] = useState<VocabWord[]>([])
   const [index, setIndex] = useState(0)
@@ -332,29 +332,15 @@ export default function VocabPage() {
   const goalPct = daily.goal > 0 ? Math.min(100, Math.round((daily.todayReviewed / daily.goal) * 100)) : 0
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-cream)' }}>
+    <div className="min-h-screen pb-20" style={{ backgroundColor: 'var(--color-cream)' }}>
       {/* ─── Header ─── */}
       <header className="flex items-center justify-between px-5 py-4">
         <h1 className="font-display text-lg font-bold" style={{ color: 'var(--color-ink)' }}>
           <span className="tracking-wide">单词</span>
         </h1>
-        <div className="flex items-center gap-3">
-          <span className="font-ui text-xs" style={{ color: 'var(--color-ink-muted)' }}>
-            {user?.nickname}
-          </span>
-          <button
-            onClick={signOut}
-            className="font-ui text-[11px] px-3 py-1.5 rounded-full transition-all"
-            style={{
-              color: 'var(--color-ink-muted)',
-              backgroundColor: 'rgba(232, 221, 208, 0.4)',
-            }}
-            onMouseOver={e => (e.currentTarget.style.backgroundColor = 'rgba(232, 221, 208, 0.8)')}
-            onMouseOut={e => (e.currentTarget.style.backgroundColor = 'rgba(232, 221, 208, 0.4)')}
-          >
-            退出
-          </button>
-        </div>
+        <span className="font-ui text-xs" style={{ color: 'var(--color-ink-muted)' }}>
+          {user?.nickname}
+        </span>
       </header>
 
       <div className="px-5 pb-8">
@@ -1033,6 +1019,14 @@ export default function VocabPage() {
                   </svg>
                 </button>
               </div>
+              {/* 规则说明 */}
+              {statList.title === '已掌握' && (
+                <div className="px-5 py-2 border-b" style={{ borderColor: 'var(--color-warm-border)' }}>
+                  <p className="font-ui text-[10px] leading-relaxed" style={{ color: 'var(--color-ink-muted)' }}>
+                    <span className="opacity-60">💡 连续点"认识" 3 次（中途不点"不认识"）自动标记为已掌握</span>
+                  </p>
+                </div>
+              )}
               {/* 搜索框 */}
               {!statList.loading && statList.words.length > 0 && (
                 <div className="px-4 py-2.5 border-b" style={{ borderColor: 'var(--color-warm-border)' }}>

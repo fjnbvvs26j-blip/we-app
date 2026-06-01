@@ -1,11 +1,13 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/shared/hooks/useAuth'
 import AuthPage from '@/features/auth/AuthPage'
+import HomePage from '@/features/home/HomePage'
+import BottomNav from '@/shared/components/BottomNav'
 
 const VocabPage = lazy(() => import('@/features/vocab/VocabPage'))
 
-function VocabFallback() {
+function PageFallback() {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-cream)' }}>
       <div className="flex flex-col items-center gap-3">
@@ -18,6 +20,15 @@ function VocabFallback() {
   )
 }
 
+function LayoutWithNav() {
+  return (
+    <>
+      <Outlet />
+      <BottomNav />
+    </>
+  )
+}
+
 function AppRoutes() {
   const { session } = useAuth()
 
@@ -25,14 +36,15 @@ function AppRoutes() {
     <Routes>
       <Route path="/auth" element={session ? <Navigate to="/" /> : <AuthPage />} />
       <Route path="/" element={
-        session ? (
-          <Suspense fallback={<VocabFallback />}>
+        session ? <LayoutWithNav /> : <Navigate to="/auth" />
+      }>
+        <Route index element={<HomePage />} />
+        <Route path="vocab" element={
+          <Suspense fallback={<PageFallback />}>
             <VocabPage />
           </Suspense>
-        ) : (
-          <Navigate to="/auth" />
-        )
-      } />
+        } />
+      </Route>
     </Routes>
   )
 }

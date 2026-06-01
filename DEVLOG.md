@@ -134,10 +134,58 @@
 - **auth 容错：** loadProfile 失败不阻塞登录，signIn/checkSession 加固
 
 ### 后续
-- [ ] 伴侣关联功能
+- [x] 伴侣关联功能（邀请码机制 + RLS 伴侣可见）
 - [ ] 互动出题启用
 
 ---
+
+## 2026-06-01 — 首页仪表盘（恋爱功能第一步）
+
+### 数据库迁移
+- **`supabase/migrations/20260601000001_add_partner_rls.sql`**
+  - `profiles` 新增 `invite_code TEXT` 列 + unique index
+  - `profiles_read_own` → 所有已认证用户可读（邀请码查找需要）
+  - `statuses_read_own` → 自己+伴侣可见
+  - `statuses` 补充 UPDATE 策略
+  - `wall_notes`、`topic_answers` RLS 增加伴侣可见
+
+### useAuth 扩展
+- `User` 类型增加 `partner_id`、`target_school`、`invite_code`
+- 新增 `refreshProfile()` 和 `linkPartner(inviteCode)` 方法
+- 伴侣关联：A 复制邀请码→B 输入→双方互相可见
+
+### 新增功能
+- **底部导航：** `BottomNav` 组件（首页 / 单词），固定底部，毛玻璃效果
+- **路由改造：** `/` → HomePage，`/vocab` → VocabPage（懒加载），`LayoutWithNav` 布局
+- **状态栏：** 5 种状态（学习/休息/想你/有空/自定义），伴侣状态实时展示
+- **见面倒计时：** 从 `meet_plans` 读取最近计划，大号数字倒计时
+- **学习概览：** QuickStats 卡片（今日复习/已掌握/连续打卡），点击跳转单词页
+- **伴侣关联：** PartnerLink（邀请码展示+输入）+ PartnerBanner（关联成功横幅）
+- **VocabPage 精简：** 退出按钮移到首页头部
+
+### 架构决策
+- **邀请码 vs 邮箱：** 选邀请码，不暴露邮箱，6 位随机字符串
+- **双向关联：** 各自更新自己的 `partner_id`，纯客户端操作
+- **无伴侣也能用：** 首页所有功能不依赖伴侣关联，组件优雅降级
+- **profiles RLS 放宽：** `USING (true)` 允许所有已认证用户读取（信息不敏感）
+- **技能：** 使用 frontend-design 确保 UI 质量
+
+### 文件清单
+| 新建 | 修改 |
+|------|------|
+| `supabase/migrations/20260601000001_add_partner_rls.sql` | `src/shared/hooks/useAuth.tsx` |
+| `src/features/home/home.types.ts` | `src/App.tsx` |
+| `src/features/home/home.service.ts` | `src/features/vocab/VocabPage.tsx` |
+| `src/features/home/HomePage.tsx` | `TASKS.md` / `DEVLOG.md` |
+| `src/features/home/components/StatusBar.tsx` | |
+| `src/features/home/components/CountdownCard.tsx` | |
+| `src/features/home/components/QuickStats.tsx` | |
+| `src/features/home/components/PartnerLink.tsx` | |
+| `src/features/home/components/PartnerBanner.tsx` | |
+| `src/shared/components/BottomNav.tsx` | |
+
+---
+
 
 ## 关键信息速查
 
