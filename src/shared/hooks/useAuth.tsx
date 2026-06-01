@@ -147,7 +147,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       target_id: partner.id,
     })
 
-    if (rpcError) throw new Error('关联失败，请重试')
+    if (rpcError) {
+      // 如果 RPC 函数不存在（未运行迁移），降级为只更新自己
+      if (rpcError.message?.includes('function') || rpcError.message?.includes('link_partners')) {
+        const { error: fallbackError } = await supabase
+          .from('profiles')
+          .update({ partner_id: partner.id })
+          .eq('id', currentUser.id)
+        if (fallbackError) throw new Error('关联失败，请重试')
+      } else {
+        throw new Error(rpcError.message || '关联失败，请重试')
+      }
+    }
 
     // 3. 刷新本地状态
     await refreshProfile()
