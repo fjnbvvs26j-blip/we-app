@@ -103,9 +103,9 @@
 
 - [x] 8.1 Git 仓库 + GitHub 推送
 - [x] 8.2 部署到 Vercel（需 VPN）
-- [x] 8.3 部署到 Netlify（https://we-app-181.netlify.app）
-- [x] 8.4 部署到 GitHub Pages（https://fjnbvvs26j-blip.github.io/we-app/，国内推荐）
-- [x] 8.5 API 代理（Netlify Function 中转 supabase.co，绕过 DNS 封锁）
+- [x] ~~8.3 部署到 Netlify~~ → 2026-06-01 迁移到 Cloudflare Pages
+- [x] ~~8.4 部署到 GitHub Pages~~ → 已废弃
+- [x] ~~8.5 Netlify Function API 代理~~ → 迁移为 Cloudflare Pages Function
 - [x] 8.6 请求超时保护（12s AbortController + 30s 硬兜底）
 - [x] 8.7 HashRouter（兼容所有静态主机）
 - [x] 8.8 慢查询优化（周报 7→1 查询、not.in 过滤、limit 兜底）
@@ -117,4 +117,5 @@
 - [x] 8.14 代码分割（React.lazy VocabPage）
 - [x] 8.15 每日目标弹窗选择器（50/100/150/200）
 - [x] 8.16 伴侣关联功能（邀请码 + 单方绑定 + RLS 伴侣可见）
-- [ ] 8.17 互动出题启用
+- [x] 8.17 迁移到 Cloudflare Pages + Functions（免费额度充足，Git 自动部署）
+- [ ] 8.18 互动出题启用

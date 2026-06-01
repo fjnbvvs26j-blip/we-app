@@ -79,13 +79,14 @@
 
 | 平台 | URL | 状态 |
 |------|-----|------|
-| Vercel | https://we-xi-five.vercel.app | 国内需 VPN |
-| Netlify（主） | **https://we-app-181.netlify.app** | 永久，国内直连 |
+| ~~Vercel~~ | ~~https://we-xi-five.vercel.app~~ | ~~国内需 VPN，已废弃~~ |
+| ~~Netlify（主）~~ | ~~https://we-app-181.netlify.app~~ | ~~2026-06-01 迁移到 Cloudflare，已废弃~~ |
+| **Cloudflare Pages** | **https://we-app.pages.dev** | 当前主力，Git 自动部署 |
 
 - **Git 仓库：** https://github.com/fjnbvvs26j-blip/we-app
 - **GitHub 认证：** `gh` CLI 已配置（账号 fjnbvvs26j-blip）
-- **Netlify 认证：** 已登录（邮箱 fjnbvvs26j@privaterelay.appleid.com）
-- **部署命令：** `npm run build && npx netlify-cli deploy --dir=dist --prod`
+- ~~**Netlify 认证：** 已登录（邮箱 fjnbvvs26j@privaterelay.appleid.com）~~ 已迁移到 Cloudflare
+- ~~**Netlify 部署命令：** `npm run build && npx netlify-cli deploy --dir=dist --prod`~~
 
 ### 部署中遇到的构建问题 & 解决
 - `tsc -b` 在 Vercel 报 TS5101（baseUrl 弃用）→ 添加 `ignoreDeprecations: "6.0"`
@@ -112,9 +113,10 @@
 - **超时保护：** Supabase 客户端加 12s AbortController 超时 + 30s 硬兜底
   - 防止网络不通时页面无限卡死
 - **HashRouter：** BrowserRouter → HashRouter，兼容所有静态主机
-- **双平台部署：**
+- **部署平台：**
 
-| Netlify | https://we-app-181.netlify.app | 主力，API 代理中转 Supabase |
+| ~~Netlify~~ | ~~https://we-app-181.netlify.app~~ | ~~2026-06-01 废弃~~ |
+| Cloudflare Pages | https://we-app.pages.dev | 当前主力，Git 自动部署 |
 
 - **缓存控制：** `public/_headers` — index.html no-cache，assets 永久缓存
 
@@ -223,6 +225,39 @@
 
 ---
 
+## 2026-06-01（续二） — Netlify → Cloudflare Pages 迁移
+
+### 背景
+- Netlify 免费额度用尽（静态带宽 100GB/月 + Serverless 12.5 万/月）
+- Cloudflare Pages 免费额度远超需求（静态无限 + Functions 10 万/天）
+
+### 迁移内容
+- **API 代理：** `functions/api/[[path]].js`（Cloudflare Pages Function），逻辑与原 Netlify Function 一致
+- **SPA 路由：** `public/_redirects` — `/* /index.html 200`
+- **配置文件：** `wrangler.jsonc`（Cloudflare Pages 项目配置）
+- **supabase.ts：** proxy URL 改为 `window.location.origin + '/api'`（自引用，不绑定域名）
+
+### 部署方式
+- **Git 自动部署：** Dashboard 连接 GitHub → 推送 main 自动构建
+- **CLI 手动：** `npx wrangler pages deploy dist --project-name=we-app --branch=main`
+- **Dashboard 构建：** `npm run build` → 输出 `dist`
+
+### 对比
+| | ~~Netlify~~ | Cloudflare Pages |
+|------|------------|-------------------|
+| 静态带宽 | 100GB/月 | 无限 |
+| Functions | 12.5 万/月 | 10 万/天 |
+| 国内可达 | ✅ | ✅ |
+| 费用 | 免费（已超） | 免费（远未触及） |
+
+### 线上地址
+- **https://we-app.pages.dev**（主力）
+- ~~https://we-app-181.netlify.app~~
+- ~~https://fjnbvvs26j-blip.github.io/we-app/~~
+- ~~https://we-xi-five.vercel.app~~
+
+---
+
 ## 关键信息速查
 
 ### 运行项目
@@ -232,13 +267,25 @@ npm run dev        # 本地开发
 npm run build      # 生产构建
 ```
 
-### 部署
+### 部署（当前）
 ```bash
+npm run build && npx wrangler pages deploy dist --project-name=we-app --branch=main
+# 推送 main 分支自动触发 Cloudflare 部署（Dashboard 已连接 GitHub）
+```
+
+### ~~部署（旧）~~
+```bash
+# Netlify（已废弃）
 npm run build && npx netlify-cli deploy --dir=dist --prod
+# GitHub Pages（已废弃）
+npm run build && npx gh-pages -d dist
 ```
 
 ### 线上地址
-- https://we-app-181.netlify.app
+- **https://we-app.pages.dev**（当前主力）
+- ~~https://we-app-181.netlify.app~~
+- ~~https://fjnbvvs26j-blip.github.io/we-app/~~
+- ~~https://we-xi-five.vercel.app~~
 
 ### Supabase 项目
 - **Dashboard：** https://supabase.com/dashboard/project/kcgkrgalxgparkryzbhj
